@@ -1,13 +1,20 @@
 package net.azisaba.vanilife.island.listener
 
+import com.github.shynixn.mccoroutine.folia.launch
 import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent
 import kotlinx.coroutines.runBlocking
+import net.azisaba.vanilife.island.IslandPlayerMap
 import net.azisaba.vanilife.island.IslandSpawnPointFinder
 import net.azisaba.vanilife.island.cache.IslandCacheMap
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.plugin.Plugin
 
-internal class SpawnLocationListener(private val cacheMap: IslandCacheMap) : Listener {
+internal class SpawnLocationListener(
+    private val cacheMap: IslandCacheMap,
+    private val plugin: Plugin,
+) : Listener {
     @EventHandler
     fun onAsyncPlayerSpawnLocation(event: AsyncPlayerSpawnLocationEvent) {
         val playerUuid = event.connection.profile.id ?: return
@@ -22,6 +29,16 @@ internal class SpawnLocationListener(private val cacheMap: IslandCacheMap) : Lis
                     safeSpawnPoint
                 } ?: spawnPoint
             }
+        }
+    }
+
+    @EventHandler
+    fun onPlayerRespawn(event: PlayerRespawnEvent) {
+        val player = event.player
+        val island = cacheMap.lookupCached(player.uniqueId) ?: return
+        event.respawnLocation = island.spawnPoint
+        plugin.launch {
+            IslandPlayerMap.put(player, island)
         }
     }
 }

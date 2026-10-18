@@ -74,6 +74,15 @@ internal class IslandCacheMap(
         return owner
     }
 
+    fun lookupCached(owner: UUID): Island? =
+        ownerIndex.lookupPosition(owner)?.let(instanceRegistry::lookup)
+
+    fun lookupCached(position: IslandPosition): Island? =
+        instanceRegistry.lookup(position)
+
+    fun lookupCachedPosition(owner: UUID): IslandPosition? =
+        ownerIndex.lookupPosition(owner)
+
     suspend fun contains(position: IslandPosition): Boolean = ownershipRepository.contains(position)
 
     override fun iterator(): Iterator<Island> = instanceRegistry.iterator()
