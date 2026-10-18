@@ -18,15 +18,19 @@ internal class Main : JavaPlugin() {
     private lateinit var koinApp: KoinApplication
 
     override fun onLoad() {
-        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
-        PacketEvents.getAPI().load()
+        if (!PacketEvents.getAPI().isLoaded) {
+            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
+            PacketEvents.getAPI().load()
+        }
     }
 
     override fun onEnable() {
         val config = reloadableConfig(Configuration(), Configuration.serializer())
         val database = config.value().database.createConnection()
 
-        PacketEvents.getAPI().init()
+        if (!PacketEvents.getAPI().isInitialized) {
+            PacketEvents.getAPI().init()
+        }
         EntityLib.init(SpigotEntityLibPlatform(this), APIConfig(PacketEvents.getAPI()))
         EnchantingRecipes.bootstrap(server)
 
@@ -48,7 +52,11 @@ internal class Main : JavaPlugin() {
     }
 
     override fun onDisable() {
-        koinApp.close()
-        PacketEvents.getAPI().terminate()
+        if (::koinApp.isInitialized) {
+            koinApp.close()
+        }
+        if (PacketEvents.getAPI().isInitialized && server.pluginManager.getPlugin("packetevents") == null) {
+            PacketEvents.getAPI().terminate()
+        }
     }
 }
