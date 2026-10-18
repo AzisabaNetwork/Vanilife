@@ -1,5 +1,6 @@
 package net.azisaba.vanilife.cooking
 
+import net.azisaba.vanilife.cooking.listener.IngredientHarvestListener
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import org.koin.core.KoinApplication
@@ -15,6 +16,9 @@ class Main : JavaPlugin() {
                 single<Plugin> { this@Main }
             })
         }
+
+        CookingRecipes.bootstrap(server)
+        server.pluginManager.registerEvents(IngredientHarvestListener(), this)
     }
 
     override fun onDisable() {

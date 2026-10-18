@@ -17,6 +17,7 @@ class Main : JavaPlugin() {
         PacketEvents.getAPI().init()
         EntityLib.init(SpigotEntityLibPlatform(this), APIConfig(PacketEvents.getAPI()))
 
+        FarmingRecipes.bootstrap(server)
         setupEventListeners()
     }
 
