@@ -4,6 +4,7 @@ import net.azisaba.vanilife.Vanilife
 import net.azisaba.vanilife.island.IslandsTable
 import net.azisaba.vanilife.world.IslandPosition
 import net.azisaba.vanilife.world.IslandsWorld
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
@@ -13,6 +14,13 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.util.*
 
 internal class IslandOwnershipRepository(private val database: Database) {
+    suspend fun listPositions(limit: Int = 30): List<IslandPosition> = suspendTransaction(database) {
+        IslandsTable.select(IslandsTable.id)
+            .orderBy(IslandsTable.level to SortOrder.DESC, IslandsTable.score to SortOrder.DESC)
+            .limit(limit)
+            .map { IslandPosition.fromLong(it[IslandsTable.id].value) }
+    }
+
     suspend fun lookupOwner(position: IslandPosition): UUID? = suspendTransaction(database) {
         IslandsTable.select(IslandsTable.owner)
             .where { IslandsTable.id eq position.toLong() }

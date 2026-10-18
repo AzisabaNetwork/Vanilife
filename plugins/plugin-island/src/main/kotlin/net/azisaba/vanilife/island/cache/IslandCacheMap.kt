@@ -83,6 +83,9 @@ internal class IslandCacheMap(
     fun lookupCachedPosition(owner: UUID): IslandPosition? =
         ownerIndex.lookupPosition(owner)
 
+    suspend fun listIslands(limit: Int = 30): List<Island> =
+        ownershipRepository.listPositions(limit).mapNotNull { lookup(it) }
+
     suspend fun contains(position: IslandPosition): Boolean = ownershipRepository.contains(position)
 
     override fun iterator(): Iterator<Island> = instanceRegistry.iterator()

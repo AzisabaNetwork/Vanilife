@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.DialogRegistryEntry
 import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.azisaba.vanilife.enchanting.dialog.EnchantmentsDialog
+import net.azisaba.vanilife.island.dialog.TravelDialog
 import net.azisaba.vanilife.island.ownedIsland
 import net.azisaba.vanilife.menuprovider.MenuProviderDialogs
 import net.azisaba.vanilife.menuprovider.MenuProviderFonts
@@ -104,6 +105,7 @@ internal object MenuDialog : KoinComponent {
                 DialogType.multiAction(
                     listOf(
                         returnToIsland(),
+                        travelButton(),
                         trashButton(),
                         storageButton(),
                         enchantments(),
@@ -133,6 +135,22 @@ internal object MenuDialog : KoinComponent {
                         .getRegistry(RegistryKey.DIALOG)
                         .getOrThrow(MenuProviderDialogs.MENU)
                 )
+            )
+        )
+        .build()
+
+    private fun travelButton(): ActionButton = ActionButton.builder(TravelDialog.TITLE)
+        .action(
+            DialogAction.customClick(
+                { _, audience ->
+                    val player = audience as? Player ?: return@customClick
+                    plugin.launch {
+                        audience.showDialog(TravelDialog.create(player))
+                    }
+                },
+                ClickCallback.Options.builder()
+                    .uses(ClickCallback.UNLIMITED_USES)
+                    .build()
             )
         )
         .build()

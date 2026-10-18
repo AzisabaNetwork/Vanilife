@@ -9,6 +9,10 @@ object IslandTranslations {
     const val DIALOG_VANILIFE_SKY_COLOR: String = "dialog.vanilife.sky_color"
     const val DIALOG_VANILIFE_SPAWN_LOCATION: String = "dialog.vanilife.spawn_location"
     const val DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION: String = "dialog.vanilife.spawn_location.description"
+    const val DIALOG_VANILIFE_TRAVEL: String = "dialog.vanilife.travel"
+    const val DIALOG_VANILIFE_TRAVEL_DESCRIPTION: String = "dialog.vanilife.travel.description"
+    const val DIALOG_VANILIFE_TRAVEL_EMPTY: String = "dialog.vanilife.travel.empty"
+    const val DIALOG_VANILIFE_TRAVEL_LOCKED: String = "dialog.vanilife.travel.locked"
 
     const val ISLAND_FEATURE_VISIT_OTHER_ISLANDS: String = "island.feature.visit_other_islands"
     const val ISLAND_FEATURE_CUSTOM_SPAWN_POINT: String = "island.feature.custom_spawn_point"
@@ -26,6 +30,10 @@ object IslandTranslations {
         DIALOG_VANILIFE_SKY_COLOR to Translation.literal("Change island's sky color"),
         DIALOG_VANILIFE_SPAWN_LOCATION to Translation.literal("Change island's spawn point"),
         DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION to Translation.literal("Do you want to change your island spawn point to your current location?"),
+        DIALOG_VANILIFE_TRAVEL to Translation.literal("Travel to Another Island"),
+        DIALOG_VANILIFE_TRAVEL_DESCRIPTION to Translation.literal("Select an island to visit."),
+        DIALOG_VANILIFE_TRAVEL_EMPTY to Translation.literal("No other islands are available to visit."),
+        DIALOG_VANILIFE_TRAVEL_LOCKED to Translation.literal("Unlocks at Island Level ") + Translation.placeholder(),
         ISLAND_FEATURE_VISIT_OTHER_ISLANDS to Translation.literal("Travel"),
         ISLAND_FEATURE_CUSTOM_SPAWN_POINT to Translation.literal("Change Spawn Point"),
         ISLAND_FEATURE_EXPAND_STORAGE to Translation.literal("Expanded Storage"),
@@ -42,6 +50,10 @@ object IslandTranslations {
         DIALOG_VANILIFE_SKY_COLOR to Translation.literal("島の空の着色を変更"),
         DIALOG_VANILIFE_SPAWN_LOCATION to Translation.literal("島のスポーン地点を変更"),
         DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION to Translation.literal("島のスポーン地点を現在の位置に変更しますか？"),
+        DIALOG_VANILIFE_TRAVEL to Translation.literal("他の島へ旅行する"),
+        DIALOG_VANILIFE_TRAVEL_DESCRIPTION to Translation.literal("訪問する島を選択してください。"),
+        DIALOG_VANILIFE_TRAVEL_EMPTY to Translation.literal("現在訪問できる他の島がありません。"),
+        DIALOG_VANILIFE_TRAVEL_LOCKED to Translation.literal("島レベル ") + Translation.placeholder() + Translation.literal(" で解放されます。"),
         ISLAND_FEATURE_VISIT_OTHER_ISLANDS to Translation.literal("旅行"),
         ISLAND_FEATURE_CUSTOM_SPAWN_POINT to Translation.literal("スポーン地点の変更"),
         ISLAND_FEATURE_EXPAND_STORAGE to Translation.literal("おおきな収納"),
