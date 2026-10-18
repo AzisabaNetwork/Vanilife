@@ -7,6 +7,8 @@ object IslandTranslations {
     const val DIALOG_VANILIFE_DISPLAY_NAME: String = "dialog.vanilife.display_name"
     const val DIALOG_VANILIFE_DISPLAY_NAME_NEW_NAME: String = "dialog.vanilife.display_name.new_name"
     const val DIALOG_VANILIFE_SKY_COLOR: String = "dialog.vanilife.sky_color"
+    const val DIALOG_VANILIFE_SKY_COLOR_RAIN_LEVEL: String = "dialog.vanilife.sky_color.rain_level"
+    const val DIALOG_VANILIFE_SKY_COLOR_THUNDER_LEVEL: String = "dialog.vanilife.sky_color.thunder_level"
     const val DIALOG_VANILIFE_SPAWN_LOCATION: String = "dialog.vanilife.spawn_location"
     const val DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION: String = "dialog.vanilife.spawn_location.description"
     const val DIALOG_VANILIFE_TRAVEL: String = "dialog.vanilife.travel"
@@ -28,6 +30,8 @@ object IslandTranslations {
         DIALOG_VANILIFE_DISPLAY_NAME to Translation.literal("Change island's name"),
         DIALOG_VANILIFE_DISPLAY_NAME_NEW_NAME to Translation.literal("New Name"),
         DIALOG_VANILIFE_SKY_COLOR to Translation.literal("Change island's sky color"),
+        DIALOG_VANILIFE_SKY_COLOR_RAIN_LEVEL to Translation.literal("Rain Level"),
+        DIALOG_VANILIFE_SKY_COLOR_THUNDER_LEVEL to Translation.literal("Thunder Level"),
         DIALOG_VANILIFE_SPAWN_LOCATION to Translation.literal("Change island's spawn point"),
         DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION to Translation.literal("Do you want to change your island spawn point to your current location?"),
         DIALOG_VANILIFE_TRAVEL to Translation.literal("Travel to Another Island"),
@@ -48,6 +52,8 @@ object IslandTranslations {
         DIALOG_VANILIFE_DISPLAY_NAME to Translation.literal("島の名前を変更"),
         DIALOG_VANILIFE_DISPLAY_NAME_NEW_NAME to Translation.literal("新しい名前"),
         DIALOG_VANILIFE_SKY_COLOR to Translation.literal("島の空の着色を変更"),
+        DIALOG_VANILIFE_SKY_COLOR_RAIN_LEVEL to Translation.literal("雨レベル"),
+        DIALOG_VANILIFE_SKY_COLOR_THUNDER_LEVEL to Translation.literal("雷レベル"),
         DIALOG_VANILIFE_SPAWN_LOCATION to Translation.literal("島のスポーン地点を変更"),
         DIALOG_VANILIFE_SPAWN_LOCATION_DESCRIPTION to Translation.literal("島のスポーン地点を現在の位置に変更しますか？"),
         DIALOG_VANILIFE_TRAVEL to Translation.literal("他の島へ旅行する"),

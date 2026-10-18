@@ -30,6 +30,7 @@ class Island internal constructor(
     private val plugin: Plugin,
     private val primaryDataAccessor: PrimaryDataAccessor = PrimaryDataAccessor.fromDatabase(position, database),
     private val spawnDataAccessor: SpawnDataAccessor = SpawnDataAccessor.fromDatabase(position, database),
+    private val skyColorAccessor: SkyColorAccessor = SkyColorAccessor.fromDatabase(position, database),
     private val levelDataAccessor: LevelDataAccessor = LevelDataAccessor.fromDatabase(position, database),
     private val enchantmentAccessor: EnchantmentAccessor = EnchantmentAccessor.fromDatabase(position, database),
     private val storageAccessor: StorageAccessor = StorageAccessor.fromDatabase(position, database),
@@ -40,6 +41,7 @@ class Island internal constructor(
     ForwardingAudience, IslandFeatureHolder,
     PrimaryDataAccessor by primaryDataAccessor,
     SpawnDataAccessor by spawnDataAccessor,
+    SkyColorAccessor by skyColorAccessor,
     LevelDataAccessor by levelDataAccessor,
     EnchantmentAccessor by enchantmentAccessor,
     StorageAccessor by storageAccessor,
@@ -47,6 +49,15 @@ class Island internal constructor(
     WaveAccessor by waveAccessor,
     WrackAccessor by wrackAccessor {
     override fun audiences(): Iterable<Audience> = IslandPlayerMap.collect(this).mapNotNull(Bukkit::getPlayer)
+
+    override suspend fun skyColor(rainLevel: Float, thunderLevel: Float) {
+        skyColorAccessor.skyColor(rainLevel, thunderLevel)
+        if (isEnabled(IslandFeature.CUSTOM_SKY_COLOR)) {
+            IslandPlayerMap.collect(this)
+                .mapNotNull(Bukkit::getPlayer)
+                .forEach(::sendSkyColor)
+        }
+    }
 
     override suspend fun addEnchantment(enchantment: TypedKey<Enchantment>): Boolean {
         if (!IslandEnchantmentAddEvent(this, enchantment).callEvent()) return false
@@ -69,6 +80,10 @@ class Island internal constructor(
             player.allowFlight = true
         }
 
+        if (isEnabled(IslandFeature.CUSTOM_SKY_COLOR)) {
+            sendSkyColor(player)
+        }
+
         if (ScoreSource.any { it is ScoreSource.VisitPlayer }) {
             val isFirstVisit = hasVisited(player)
 
@@ -89,6 +104,7 @@ class Island internal constructor(
         endVisit(player)
         removeWaveViewer(player.uniqueId)
         removeWrackViewer(player)
+        resetSkyColor(player)
 
         if (!player.gameMode.isInvulnerable) {
             player.allowFlight = false
@@ -98,6 +114,7 @@ class Island internal constructor(
     internal suspend fun bootstrap() {
         bootstrapPrimaryData()
         bootstrapSpawnData()
+        bootstrapSkyColorData()
         bootstrapLevelData()
         bootstrapEnchantments()
         bootstrapStorage()

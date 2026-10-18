@@ -14,5 +14,11 @@ internal fun Database.setupTables(): Database = transaction(this) {
         IslandStorageTable,
         IslandVisitorsTable,
     )
+    SchemaUtils.addMissingColumnsStatements(
+        IslandsTable,
+        IslandEnchantmentsTable,
+        IslandStorageTable,
+        IslandVisitorsTable,
+    ).forEach(::exec)
     this@setupTables
 }

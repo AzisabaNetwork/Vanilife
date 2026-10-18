@@ -26,4 +26,8 @@ object IslandsTable : LongIdTable("islands", "position") {
     val spawnYaw: Column<Float> = float("spawn_yaw").default(90f)
 
     val spawnPitch: Column<Float> = float("spawn_pitch").default(0f)
+
+    val skyRainLevel: Column<Float> = float("sky_rain_level").default(0f)
+
+    val skyThunderLevel: Column<Float> = float("sky_thunder_level").default(0f)
 }

@@ -45,7 +45,7 @@ internal object SettingsDialog {
                                 }
 
                                 if (island.isEnabled(IslandFeature.CUSTOM_SKY_COLOR)) {
-                                    add(SkyColorDialog.create())
+                                    add(SkyColorDialog.create(island))
                                 }
                             }
                         )
