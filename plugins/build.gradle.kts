@@ -13,7 +13,9 @@ subprojects {
 
     tasks.named<ShadowJar>("shadowJar") {
         archiveClassifier.set("")
-        if (project.path != ":plugins:plugin-runtime") {
+        if (project.path == ":plugins:plugin-runtime") {
+            dependsOn(":plugins:common:shadowJar")
+        } else {
             dependencies {
                 exclude(dependency("org.jetbrains.kotlin:.*"))
                 exclude(dependency("org.jetbrains.kotlinx:.*"))
