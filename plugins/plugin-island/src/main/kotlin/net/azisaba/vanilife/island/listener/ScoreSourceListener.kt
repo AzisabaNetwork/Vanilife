@@ -14,7 +14,7 @@ import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.plugin.Plugin
 
 internal class ScoreSourceListener(private val cacheMap: IslandCacheMap, private val plugin: Plugin) : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
         if (event.block.world !is IslandsWorld) return
 
@@ -33,7 +33,7 @@ internal class ScoreSourceListener(private val cacheMap: IslandCacheMap, private
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
         if (event.block.world !is IslandsWorld) return
 
@@ -52,7 +52,7 @@ internal class ScoreSourceListener(private val cacheMap: IslandCacheMap, private
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onEntityBreed(event: EntityBreedEvent) {
         if (event.entity.world !is IslandsWorld) return
 
@@ -70,7 +70,7 @@ internal class ScoreSourceListener(private val cacheMap: IslandCacheMap, private
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onPlayerHarvestBlock(event: PlayerHarvestBlockEvent) {
         if (event.harvestedBlock.world !is IslandsWorld) return
 

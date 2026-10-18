@@ -10,6 +10,7 @@ import kr.toxicity.model.api.event.hitbox.HitBoxInteractEvent
 import kr.toxicity.model.api.nms.HitBoxListener
 import kr.toxicity.model.api.tracker.DummyTracker
 import kr.toxicity.model.api.util.function.BonePredicate
+import net.azisaba.vanilife.island.cache.IslandCacheMap
 import net.azisaba.vanilife.island.getIslandAt
 import net.azisaba.vanilife.world.IslandPosition
 import net.azisaba.vanilife.world.IslandsWorld
@@ -31,6 +32,7 @@ class WrackEntity internal constructor(
     val location: Location
         get() = (tracker.location() as BukkitLocation).source
 
+    private val cacheMap: IslandCacheMap by inject()
     private val plugin: Plugin by inject()
 
     private val totalTicks: Long = path.random.nextLong(20L * 15, 20L * 30)
@@ -81,6 +83,11 @@ class WrackEntity internal constructor(
 
     private fun interact(event: HitBoxInteractEvent) {
         val player = (event.who as? BukkitPlayer)?.source() ?: return
+        if (!(player.isOp && player.gameMode.isInvulnerable) &&
+            cacheMap.lookupCachedPosition(player.uniqueId) != islandPosition
+        ) {
+            return
+        }
 
         val hitBoxSource = (event.hitBox.source() as? BukkitEntity)?.source()
         hitBoxSource?.remove()
