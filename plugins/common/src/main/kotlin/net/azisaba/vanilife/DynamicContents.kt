@@ -17,12 +17,25 @@ abstract class DynamicContents<T>(
 
     override fun byKey(key: Key): T? = requireLoaded()[key]
 
+    open fun defaultEntries(): Map<Key, T> = emptyMap()
+
     fun bootstrap(plugin: Plugin) {
         val contentsRoot = plugin.dataFolder.toPath().resolve(name)
         contentsRoot.createDirectories()
 
         require(contentsRoot.isDirectory()) {
             "Path is not a directory: $contentsRoot"
+        }
+
+        val hasExistingFiles = contentsRoot.walk()
+            .any { it.isRegularFile() && it.extension == "yml" }
+
+        if (!hasExistingFiles) {
+            for ((key, entry) in defaultEntries()) {
+                val targetFile = contentsRoot.resolve(key.namespace()).resolve("${key.value()}.yml")
+                targetFile.parent?.createDirectories()
+                targetFile.writeText(yaml.encodeToString(lazySerializer.value, entry))
+            }
         }
 
         val newMap = contentsRoot.walk()
