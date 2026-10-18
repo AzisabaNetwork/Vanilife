@@ -14,10 +14,16 @@ object NpcTranslations {
 
     const val DIALOG_VANILIFE_NPC_MENU_DONE: String = "dialog.vanilife.npc_menu.done"
 
+    const val NPC_NAME: String = "npc.name"
     const val NPC_MODE: String = "npc.mode"
     const val NPC_MODE_FOLLOW: String = "npc.mode.follow"
     const val NPC_MODE_FREE: String = "npc.mode.free"
     const val NPC_MODE_SIT: String = "npc.mode.sit"
+
+    const val NPC_TYPE_CAVEMAN: String = "npc.type.caveman"
+    const val NPC_TYPE_CREEPER: String = "npc.type.creeper"
+    const val NPC_TYPE_ENDER: String = "npc.type.ender"
+    const val NPC_TYPE_NEKO: String = "npc.type.neko"
 
     fun us(): PackLanguage = mapOf(
         COMMANDS_VANILIFE_NPC_RELOAD_CONFIG to Translation.literal("Reloaded config.yaml"),
@@ -30,10 +36,16 @@ object NpcTranslations {
 
         DIALOG_VANILIFE_NPC_MENU_DONE to Translation.literal("Okay"),
 
+        NPC_NAME to Translation.literal("Name"),
         NPC_MODE to Translation.literal("Mode"),
         NPC_MODE_FOLLOW to Translation.literal("Follow"),
         NPC_MODE_FREE to Translation.literal("Free"),
         NPC_MODE_SIT to Translation.literal("Sit"),
+
+        NPC_TYPE_CAVEMAN to Translation.literal("Caveman"),
+        NPC_TYPE_CREEPER to Translation.literal("Creeper"),
+        NPC_TYPE_ENDER to Translation.literal("Ender"),
+        NPC_TYPE_NEKO to Translation.literal("Neko"),
     )
 
     fun jp(): PackLanguage = mapOf(
@@ -47,9 +59,15 @@ object NpcTranslations {
 
         DIALOG_VANILIFE_NPC_MENU_DONE to Translation.literal("オッケー！"),
 
+        NPC_NAME to Translation.literal("名前"),
         NPC_MODE to Translation.literal("モード"),
         NPC_MODE_FOLLOW to Translation.literal("追従"),
         NPC_MODE_FREE to Translation.literal("自由行動"),
         NPC_MODE_SIT to Translation.literal("待機"),
+
+        NPC_TYPE_CAVEMAN to Translation.literal("原始人"),
+        NPC_TYPE_CREEPER to Translation.literal("クリーパー"),
+        NPC_TYPE_ENDER to Translation.literal("エンダー"),
+        NPC_TYPE_NEKO to Translation.literal("ねこ"),
     )
 }

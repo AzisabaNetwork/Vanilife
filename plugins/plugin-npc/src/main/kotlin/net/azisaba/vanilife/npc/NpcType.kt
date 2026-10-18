@@ -39,6 +39,8 @@ enum class NpcType(val key: Key, val icon: Char, val modelName: String) : Keyed 
         .font(NpcFonts.NPC_ICONS)
         .shadowColor(ShadowColor.none())
 
+    fun defaultName(): Component = Component.translatable("npc.type.${key.value()}")
+
     companion object {
         val BY_KEY: Map<Key, NpcType> = entries.associateBy { it.key }
 

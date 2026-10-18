@@ -12,18 +12,37 @@ import net.azisaba.vanilife.npc.NpcTranslations
 import net.azisaba.vanilife.npc.wrapper.NpcWrapper
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
+import net.kyori.adventure.text.minimessage.MiniMessage
+import org.bukkit.plugin.Plugin
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-object NpcMenuDialog {
+object NpcMenuDialog : KoinComponent {
+    private val plugin: Plugin by inject()
+
     fun create(npcWrapper: NpcWrapper): Dialog = Dialog.create { builder ->
+        val currentName = npcWrapper.customName()
+            ?.let { MiniMessage.miniMessage().serialize(it) }
+            .orEmpty()
+
         builder.empty()
             .base(
                 DialogBase.builder(
-                    Component.text().append(npcWrapper.npcType.iconComponent())
-                        .append(npcWrapper.customName() ?: Component.text("ねこ" +
-                                "")).build()
+                    Component.text()
+                        .append(npcWrapper.npcType.iconComponent())
+                        .appendSpace()
+                        .append(npcWrapper.customName() ?: npcWrapper.npcType.defaultName())
+                        .build()
                 )
                     .inputs(
                         listOf(
+                            DialogInput.text(
+                                "name",
+                                Component.translatable(NpcTranslations.NPC_NAME),
+                            )
+                                .initial(currentName)
+                                .maxLength(32)
+                                .build(),
                             DialogInput.singleOption(
                                 "mode",
                                 Component.translatable(NpcTranslations.NPC_MODE),
@@ -34,7 +53,7 @@ object NpcMenuDialog {
                                         npcWrapper.mode == npcMode,
                                     )
                                 }
-                            ).build()
+                            ).build(),
                         )
                     ).build()
             )
@@ -45,7 +64,14 @@ object NpcMenuDialog {
                             .action(
                                 DialogAction.customClick(
                                     { response, _ ->
-                                        updateMode(npcWrapper, response.getText("mode"))
+                                        npcWrapper.delegate.scheduler.run(
+                                            plugin,
+                                            {
+                                                updateName(npcWrapper, response.getText("name"))
+                                                updateMode(npcWrapper, response.getText("mode"))
+                                            },
+                                            null,
+                                        )
                                     },
                                     ClickCallback.Options.builder()
                                         .uses(ClickCallback.UNLIMITED_USES)
@@ -57,6 +83,17 @@ object NpcMenuDialog {
                     )
                 ).build()
             )
+    }
+
+    private fun updateName(npcWrapper: NpcWrapper, value: String?) {
+        val trimmed = value?.trim().orEmpty()
+        if (trimmed.isEmpty()) {
+            npcWrapper.customName(null)
+            npcWrapper.delegate.isCustomNameVisible = false
+        } else {
+            npcWrapper.customName(MiniMessage.miniMessage().deserialize(trimmed))
+            npcWrapper.delegate.isCustomNameVisible = true
+        }
     }
 
     private fun updateMode(npcWrapper: NpcWrapper, value: String?) {

@@ -5,6 +5,6 @@ import net.azisaba.vanilife.npc.listener.NpcNaturalSpawnListener
 import org.koin.core.Koin
 
 internal fun Main.setupEventListeners(koin: Koin) {
-    server.pluginManager.registerEvents(NpcDelegateListener(koin.get()), this)
+    server.pluginManager.registerEvents(NpcDelegateListener(koin.get(), koin.get()), this)
     server.pluginManager.registerEvents(NpcNaturalSpawnListener(koin.get(), koin.get()), this)
 }

@@ -1,6 +1,7 @@
 package net.azisaba.vanilife.npc.wrapper
 
 import org.bukkit.entity.Chicken
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
@@ -8,6 +9,8 @@ internal class NpcWrapperMap(private val map: ConcurrentMap<Int, NpcWrapper> = C
     fun byEntityId(entityId: Int): NpcWrapper? = map[entityId]
 
     fun byDelegate(chicken: Chicken): NpcWrapper? = byEntityId(chicken.entityId)
+
+    fun byOwner(ownerUuid: UUID): List<NpcWrapper> = map.values.filter { it.owner == ownerUuid }
 
     fun isDelegate(chicken: Chicken): Boolean = chicken.entityId in map
 
