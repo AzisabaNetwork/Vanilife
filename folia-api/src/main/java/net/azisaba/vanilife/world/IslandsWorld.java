@@ -12,6 +12,7 @@ public interface IslandsWorld extends World {
 
     int ISLAND_SIZE_X_BLOCKS = 144;
     int ISLAND_SIZE_Z_BLOCKS = 144;
+    int BOUNDARY_RADIUS_BLOCKS = 256;
     int SPACING_BLOCKS = 1008;
 
     Key WORLD_KEY = Key.key(Vanilife.NAMESPACE, "islands");

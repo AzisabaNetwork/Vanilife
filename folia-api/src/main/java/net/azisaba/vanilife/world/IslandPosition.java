@@ -55,6 +55,31 @@ public sealed interface IslandPosition permits IslandPositionImpl {
         return centerBlockZ() + (IslandsWorld.ISLAND_SIZE_Z_BLOCKS / 2);
     }
 
+    default int minBoundaryBlockX() {
+        return centerBlockX() - IslandsWorld.BOUNDARY_RADIUS_BLOCKS;
+    }
+
+    default int maxBoundaryBlockX() {
+        return centerBlockX() + IslandsWorld.BOUNDARY_RADIUS_BLOCKS;
+    }
+
+    default int minBoundaryBlockZ() {
+        return centerBlockZ() - IslandsWorld.BOUNDARY_RADIUS_BLOCKS;
+    }
+
+    default int maxBoundaryBlockZ() {
+        return centerBlockZ() + IslandsWorld.BOUNDARY_RADIUS_BLOCKS;
+    }
+
+    default boolean isWithinBoundary(final int blockX, final int blockZ) {
+        return blockX >= minBoundaryBlockX() && blockX <= maxBoundaryBlockX()
+            && blockZ >= minBoundaryBlockZ() && blockZ <= maxBoundaryBlockZ();
+    }
+
+    default boolean isWithinBoundary(final Position position) {
+        return isWithinBoundary(position.blockX(), position.blockZ());
+    }
+
     default int centerBlockX() {
         return this.x() * IslandsWorld.SPACING_BLOCKS;
     }

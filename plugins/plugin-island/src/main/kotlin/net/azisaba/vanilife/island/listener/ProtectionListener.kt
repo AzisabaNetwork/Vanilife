@@ -1,5 +1,6 @@
 package net.azisaba.vanilife.island.listener
 
+import net.azisaba.vanilife.island.IslandPlayerMap
 import net.azisaba.vanilife.island.cache.IslandCacheMap
 import net.azisaba.vanilife.world.IslandPosition
 import net.azisaba.vanilife.world.IslandsWorld
@@ -27,8 +28,12 @@ import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerMoveEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.vehicle.VehicleDamageEvent
 import org.bukkit.event.vehicle.VehicleDestroyEvent
+import org.bukkit.event.vehicle.VehicleMoveEvent
+import org.bukkit.util.Vector
 
 internal class ProtectionListener(private val cacheMap: IslandCacheMap) : Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -174,12 +179,70 @@ internal class ProtectionListener(private val cacheMap: IslandCacheMap) : Listen
         }
     }
 
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        val to = event.to
+        if (event.from.blockX == to.blockX && event.from.blockZ == to.blockZ) return
+        if (to.world !is IslandsWorld) return
+        val player = event.player
+        if (player.isOp && player.gameMode.isInvulnerable) return
+
+        val allowedPosition = IslandPlayerMap.lookup(player.uniqueId)?.position
+            ?: IslandPosition.fromPosition(event.from)
+        if (!allowedPosition.isWithinBoundary(to)) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    fun onPlayerTeleport(event: PlayerTeleportEvent) {
+        if (event.cause != PlayerTeleportEvent.TeleportCause.ENDER_PEARL &&
+            event.cause != PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT
+        ) {
+            return
+        }
+        val to = event.to
+        if (to.world !is IslandsWorld) return
+        val player = event.player
+        if (player.isOp && player.gameMode.isInvulnerable) return
+
+        val allowedPosition = IslandPlayerMap.lookup(player.uniqueId)?.position
+            ?: IslandPosition.fromPosition(event.from)
+        if (!allowedPosition.isWithinBoundary(to) || !canModify(player, to)) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    fun onVehicleMove(event: VehicleMoveEvent) {
+        val to = event.to
+        if (event.from.blockX == to.blockX && event.from.blockZ == to.blockZ) return
+        if (to.world !is IslandsWorld) return
+
+        val passengers = event.vehicle.passengers.filterIsInstance<Player>()
+        if (passengers.isEmpty()) return
+
+        val outOfBounds = passengers.any { player ->
+            if (player.isOp && player.gameMode.isInvulnerable) return@any false
+            val allowedPosition = IslandPlayerMap.lookup(player.uniqueId)?.position
+                ?: IslandPosition.fromPosition(event.from)
+            !allowedPosition.isWithinBoundary(to)
+        }
+        if (outOfBounds) {
+            event.vehicle.velocity = Vector(0, 0, 0)
+            event.vehicle.teleportAsync(event.from)
+        }
+    }
+
     private fun canModify(player: Player, location: Location): Boolean {
         if (location.world !is IslandsWorld) return true
         if (player.isOp && player.gameMode.isInvulnerable) return true
 
+        val targetPosition = IslandPosition.fromPosition(location)
+        if (!targetPosition.isWithinBoundary(location)) return false
+
         val ownedPosition = cacheMap.lookupCachedPosition(player.uniqueId) ?: return false
-        return IslandPosition.fromPosition(location) == ownedPosition
+        return targetPosition == ownedPosition
     }
 
     private fun resolveAttacker(entity: Entity?): Player? = when (entity) {

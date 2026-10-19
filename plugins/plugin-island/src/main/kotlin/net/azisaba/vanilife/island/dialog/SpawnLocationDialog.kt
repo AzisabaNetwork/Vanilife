@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.azisaba.vanilife.island.Island
 import net.azisaba.vanilife.island.IslandFonts
 import net.azisaba.vanilife.island.IslandTranslations
+import net.azisaba.vanilife.world.IslandsWorld
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.text.format.ShadowColor
@@ -55,8 +56,11 @@ object SpawnLocationDialog : KoinComponent {
             DialogAction.customClick(
                 { _, audience ->
                     val player = audience as? Player ?: return@customClick
-                    plugin.launch {
-                        island.spawnPoint(player.location)
+                    val loc = player.location
+                    if (loc.world is IslandsWorld && island.position.isWithinBoundary(loc)) {
+                        plugin.launch {
+                            island.spawnPoint(loc)
+                        }
                     }
                     player.closeDialog()
                 },
