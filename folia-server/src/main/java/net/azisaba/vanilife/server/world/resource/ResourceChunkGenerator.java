@@ -116,38 +116,7 @@ public class ResourceChunkGenerator extends ChunkGenerator {
         return new NoiseColumn(minY, column);
     }
 
-    @Override
-    public void applyCarvers(
-        final WorldGenRegion region,
-        final long seed,
-        final RandomState random,
-        final BiomeManager biomeManager,
-        final StructureManager structureManager,
-        final ChunkAccess chunk,
-        final HeightContext heightContext
-    ) {
-        final HolderGetter<NormalNoise.NoiseParameters> noiseParametersGetter = region.registryAccess().lookupOrThrow(Registries.NOISE);
 
-        for (final ResourceLayer.Type layerType : this.layout) {
-            final ChunkGenerator layerGenerator = layerType.generator();
-            final ResourceLayer layerChunk = ResourceLayer.copy(chunk, region.getMinecraftWorld(), this.layout, layerType);
-            final RandomState layerRandomState = Objects.requireNonNullElse(
-                this.randomStateSource.getOrCreate(seed, layerType, noiseParametersGetter),
-                random
-            );
-            final HeightContext layerHeightContext = this.layout.createHeightContext(layerType);
-            layerGenerator.applyCarvers(
-                region,
-                seed,
-                layerRandomState,
-                biomeManager.withLayeredSource(this.layout, layerType),
-                structureManager,
-                layerChunk,
-                layerHeightContext
-            );
-            layerChunk.mergeInto(chunk, false);
-        }
-    }
 
     @Override
     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
@@ -223,98 +192,44 @@ public class ResourceChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public void buildSurface(
-        final WorldGenRegion region,
-        final StructureManager structureManager,
-        final RandomState random,
+    public CompletableFuture<ChunkAccess> buildTerrain(
         final ChunkAccess chunk,
-        final HeightContext heightContext
-    ) {
-        final Registry<NormalNoise.NoiseParameters> noiseParameters = region.registryAccess().lookupOrThrow(Registries.NOISE);
-
-        for (final ResourceLayer.Type layerType : this.layout) {
-            final ChunkGenerator layerGenerator = layerType.generator();
-
-            final ResourceLayer layerChunk = ResourceLayer.copy(chunk, region.getMinecraftWorld(), this.layout, layerType);
-            final RandomState layerRandomState = Objects.requireNonNullElse(
-                this.randomStateSource.getOrCreate(region.getSeed(), layerType, noiseParameters),
-                random
-            );
-            final HeightContext layerHeightContext = this.layout.createHeightContext(layerType);
-            layerGenerator.buildSurface(region, structureManager, layerRandomState, layerChunk, layerHeightContext);
-            layerChunk.mergeInto(chunk, true);
-        }
-    }
-
-    @Override
-    public CompletableFuture<ChunkAccess> fillFromNoise(
         final Blender blender,
         final RandomState randomState,
         final StructureManager structureManager,
-        final ChunkAccess chunk,
-        final HeightContext heightContext
+        final BiomeManager biomeManager,
+        final @org.jspecify.annotations.Nullable WorldGenRegion carverBiomeRegion,
+        final Set<Holder<Biome>> possibleBiomes
     ) {
         return CompletableFuture.supplyAsync(() -> {
-            final ServerLevel level = structureManager.level.getMinecraftWorld();
-            final long seed = level.getMinecraftWorld().getSeed();
-            final HolderGetter<NormalNoise.NoiseParameters> noiseParametersGetter = structureManager.registryAccess().lookupOrThrow(Registries.NOISE);
+            final ServerLevel level = carverBiomeRegion != null
+                ? carverBiomeRegion.getMinecraftWorld()
+                : (structureManager.level != null ? structureManager.level.getMinecraftWorld() : null);
+            final long seed = level != null ? level.getSeed() : 0L;
+            final HolderGetter<NormalNoise> noiseGetter = carverBiomeRegion != null
+                ? carverBiomeRegion.registryAccess().lookupOrThrow(Registries.NOISE)
+                : (structureManager.registryAccess().lookupOrThrow(Registries.NOISE));
 
             for (final ResourceLayer.Type layerType : this.layout) {
                 final ChunkGenerator layerGenerator = layerType.generator();
-                final ResourceLayer layerChunk = ResourceLayer.empty(chunk.getPos(), level, this.layout, layerType);
-                final HeightContext layerHeightContext = this.layout.createHeightContext(layerType);
-                layerGenerator.fillFromNoise(
-                    blender,
-                    Objects.requireNonNullElse(
-                        this.randomStateSource.getOrCreate(seed, layerType, noiseParametersGetter),
-                        randomState
-                    ),
-                    structureManager,
+                final ResourceLayer layerChunk = ResourceLayer.copy(chunk, level, this.layout, layerType);
+                final RandomState layerRandomState = Objects.requireNonNullElse(
+                    this.randomStateSource.getOrCreate(seed, layerType, noiseGetter),
+                    randomState
+                );
+                layerGenerator.buildTerrain(
                     layerChunk,
-                    layerHeightContext
+                    blender,
+                    layerRandomState,
+                    structureManager,
+                    biomeManager.withLayeredSource(this.layout, layerType),
+                    carverBiomeRegion,
+                    layerGenerator.getBiomeSource().possibleBiomes()
                 ).join();
                 layerChunk.mergeInto(chunk, false);
             }
             return chunk;
         });
-    }
-
-    @Override
-    public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
-        return CompletableFuture.supplyAsync(() -> {
-            final ChunkPos pos = chunk.getPos();
-            final int quartMinX = QuartPos.fromBlock(pos.getMinBlockX());
-            final int quartMinY = QuartPos.fromBlock(chunk.getMinY());
-            final int quartMinZ = QuartPos.fromBlock(pos.getMinBlockZ());
-            final int quartHeight = QuartPos.fromBlock(chunk.getHeight());
-
-            for (int qx = 0; qx < 4; qx++) {
-                for (int qz = 0; qz < 4; qz++) {
-                    final int quartX = quartMinX + qx;
-                    final int quartZ = quartMinZ + qz;
-                    for (int qyOffset = 0; qyOffset < quartHeight; qyOffset++) {
-                        final int quartY = quartMinY + qyOffset;
-                        final int blockY = QuartPos.toBlock(quartY);
-
-                        final ResourceLayer.Type layerType = this.layout.getLayerTypeAt(blockY);
-                        if (layerType == null) {
-                            continue;
-                        }
-
-                        final int layerY = this.layout.toLayerY(layerType, blockY);
-                        final int layerQuartY = QuartPos.fromBlock(layerY);
-                        final RandomState layerRandomState = Objects.requireNonNullElse(
-                            this.randomStateSource.getOrCreate(structureManager.level.getMinecraftWorld().getSeed(), layerType, structureManager.registryAccess().lookupOrThrow(Registries.NOISE)),
-                            randomState
-                        );
-                        final Holder<Biome> biome = layerType.generator().getBiomeSource().getNoiseBiome(quartX, layerQuartY, quartZ, layerRandomState.sampler());
-                        chunk.setBiome(quartX, quartY, quartZ, biome);
-                    }
-                }
-            }
-
-            return chunk;
-        }, Runnable::run);
     }
 
     @Override
@@ -326,7 +241,12 @@ public class ResourceChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public void addDebugScreenInfo(final List<String> info, final RandomState random, final BlockPos pos) {
+    public void addDebugScreenInfo(
+        final List<String> info,
+        final RandomState random,
+        final BlockPos pos,
+        final net.minecraft.world.level.levelgen.densityfunction.SamplerContext samplerContext
+    ) {
     }
 
     private void applyLayerBiomeDecoration(
@@ -341,8 +261,8 @@ public class ResourceChunkGenerator extends ChunkGenerator {
         final org.bukkit.World world = level.getMinecraftWorld().getWorld();
         if (!world.getPopulators().isEmpty()) {
             final org.bukkit.craftbukkit.generator.CraftLimitedRegion limitedRegion = new org.bukkit.craftbukkit.generator.CraftLimitedRegion(level, chunk.getPos());
-            final int x = chunk.getPos().x;
-            final int z = chunk.getPos().z;
+            final int x = chunk.getPos().x();
+            final int z = chunk.getPos().z();
             for (final org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
                 final WorldgenRandom seededRandom = new WorldgenRandom(new LegacyRandomSource(level.getSeed()));
                 seededRandom.setDecorationSeed(level.getSeed(), x, z);
@@ -378,7 +298,7 @@ public class ResourceChunkGenerator extends ChunkGenerator {
         final Set<Holder<Biome>> biomes = new ObjectArraySet<>();
 
         ChunkPos.rangeClosed(sectionPos.chunk(), 1).forEach(chunkPos -> {
-            final ChunkAccess neighbourChunk = level.getChunk(chunkPos.x, chunkPos.z);
+            final ChunkAccess neighbourChunk = level.getChunk(chunkPos.x(), chunkPos.z());
             for (final LevelChunkSection section : neighbourChunk.getSections()) {
                 section.getBiomes().getAll(biomes::add);
             }
@@ -400,7 +320,7 @@ public class ResourceChunkGenerator extends ChunkGenerator {
 
                         try {
                             level.setCurrentlyGenerating(description);
-                            structureManager.startsForStructure(sectionPos, structure)
+                            structureManager.startsForStructure(sectionPos.x(), sectionPos.z(), structure)
                                 .forEach(
                                     structureStart -> structureStart.placeInChunk(
                                         level,
@@ -469,8 +389,8 @@ public class ResourceChunkGenerator extends ChunkGenerator {
         } catch (final Exception exception) {
             final CrashReport crashReport = CrashReport.forThrowable(exception, "Biome decoration");
             crashReport.addCategory("Generation")
-                .setDetail("CenterX", pos.x)
-                .setDetail("CenterZ", pos.z)
+                .setDetail("CenterX", pos.x())
+                .setDetail("CenterZ", pos.z())
                 .setDetail("Decoration Seed", decorationSeed);
             throw new ReportedException(crashReport);
         }

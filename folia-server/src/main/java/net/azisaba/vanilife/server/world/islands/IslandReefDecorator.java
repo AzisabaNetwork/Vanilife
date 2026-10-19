@@ -23,7 +23,7 @@ final class IslandReefDecorator {
     }
 
     void buildSurface(final WorldGenLevel level, final ChunkPos chunkPos) {
-        final RandomSource random = RandomSource.create(level.getSeed() ^ chunkPos.toLong() ^ REEF_RANDOM_SALT);
+        final RandomSource random = RandomSource.create(level.getSeed() ^ chunkPos.pack() ^ REEF_RANDOM_SALT);
         this.placeShallowReefs(level, chunkPos, random);
     }
 

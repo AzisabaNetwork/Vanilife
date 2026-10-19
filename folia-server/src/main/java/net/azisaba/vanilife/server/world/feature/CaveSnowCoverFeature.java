@@ -1,37 +1,61 @@
 package net.azisaba.vanilife.server.world.feature;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 import org.jspecify.annotations.Nullable;
 
-public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Configuration> {
+public record CaveSnowCoverFeature(
+        int radius,
+        int verticalSearchRange,
+        int blurPasses,
+        float minSmoothOffset,
+        float layerScale,
+        float centerWeight,
+        float sideWeight,
+        int maxIcePatchLayers,
+        Holder<BlockStateProvider> icePatchProvider
+) implements Feature {
+    public static final MapCodec<CaveSnowCoverFeature> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.INT.fieldOf("radius").forGetter(CaveSnowCoverFeature::radius),
+            Codec.INT.fieldOf("vertical_search_range").forGetter(CaveSnowCoverFeature::verticalSearchRange),
+            Codec.INT.fieldOf("blur_passes").forGetter(CaveSnowCoverFeature::blurPasses),
+            Codec.FLOAT.fieldOf("min_smooth_offset").forGetter(CaveSnowCoverFeature::minSmoothOffset),
+            Codec.FLOAT.fieldOf("layer_scale").forGetter(CaveSnowCoverFeature::layerScale),
+            Codec.FLOAT.fieldOf("center_weight").forGetter(CaveSnowCoverFeature::centerWeight),
+            Codec.FLOAT.fieldOf("side_weight").forGetter(CaveSnowCoverFeature::sideWeight),
+            Codec.INT.fieldOf("max_ice_patch_layers").forGetter(CaveSnowCoverFeature::maxIcePatchLayers),
+            BlockStateProvider.CODEC.fieldOf("ice_patch_provider").forGetter(CaveSnowCoverFeature::icePatchProvider)
+    ).apply(instance, CaveSnowCoverFeature::new));
+
     private static final int NO_FLOOR = Integer.MIN_VALUE;
 
-    public CaveSnowCoverFeature(final Codec<Configuration> codec) {
-        super(codec);
+    public int diameter() {
+        return this.radius * 2 + 1;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<Configuration> context) {
-        final WorldGenLevel level = context.level();
-        final BlockPos origin = context.origin();
-        final RandomSource random = context.random();
-        final Configuration config = context.config();
+    public MapCodec<CaveSnowCoverFeature> codec() {
+        return CODEC;
+    }
+
+    @Override
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
         final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        final int[][] floorMap = this.sampleFloorMap(level, origin, config);
-        final float[][] smoothMap = this.smoothFloorMap(floorMap, config);
-        return this.placeSnowCover(level, origin, random, floorMap, smoothMap, cursor, config);
+        final int[][] floorMap = this.sampleFloorMap(level, origin);
+        final float[][] smoothMap = this.smoothFloorMap(floorMap);
+        return this.placeSnowCover(level, origin, random, floorMap, smoothMap, cursor);
     }
 
     private boolean placeSnowCover(
@@ -40,10 +64,9 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
             final RandomSource random,
             final int[][] floorMap,
             final float[][] smoothMap,
-            final BlockPos.MutableBlockPos cursor,
-            final Configuration config
+            final BlockPos.MutableBlockPos cursor
     ) {
-        final int diameter = config.diameter();
+        final int diameter = this.diameter();
         boolean placed = false;
         for (int x = 0; x < diameter; x++) {
             for (int z = 0; z < diameter; z++) {
@@ -52,15 +75,15 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
                     continue;
                 }
 
-                final int blockX = origin.getX() + x - config.radius();
-                final int blockZ = origin.getZ() + z - config.radius();
+                final int blockX = origin.getX() + x - this.radius;
+                final int blockZ = origin.getZ() + z - this.radius;
                 cursor.set(blockX, floorY + 1, blockZ);
                 if (!level.isStateAtPosition(cursor, BlockState::isAir)) {
                     continue;
                 }
 
-                final int targetLayers = this.computeTargetLayers(floorY, smoothMap[x][z], config);
-                final BlockState state = this.selectSurfaceState(level, cursor, random, targetLayers, config);
+                final int targetLayers = this.computeTargetLayers(floorY, smoothMap[x][z]);
+                final BlockState state = this.selectSurfaceState(level, cursor, random, targetLayers);
                 if (state == null) {
                     continue;
                 }
@@ -72,16 +95,16 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         return placed;
     }
 
-    private int[][] sampleFloorMap(final WorldGenLevel level, final BlockPos origin, final Configuration config) {
-        final int diameter = config.diameter();
+    private int[][] sampleFloorMap(final WorldGenLevel level, final BlockPos origin) {
+        final int diameter = this.diameter();
         final int[][] floorMap = new int[diameter][diameter];
         this.fillFloorMap(floorMap);
 
         for (int x = 0; x < diameter; x++) {
             for (int z = 0; z < diameter; z++) {
-                final int blockX = origin.getX() + x - config.radius();
-                final int blockZ = origin.getZ() + z - config.radius();
-                final Integer floorY = this.findFloor(level, blockX, origin.getY(), blockZ, config.verticalSearchRange());
+                final int blockX = origin.getX() + x - this.radius;
+                final int blockZ = origin.getZ() + z - this.radius;
+                final Integer floorY = this.findFloor(level, blockX, origin.getY(), blockZ, this.verticalSearchRange);
                 if (floorY != null) {
                     floorMap[x][z] = floorY;
                 }
@@ -90,8 +113,8 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         return floorMap;
     }
 
-    private float[][] smoothFloorMap(final int[][] floorMap, final Configuration config) {
-        final int diameter = config.diameter();
+    private float[][] smoothFloorMap(final int[][] floorMap) {
+        final int diameter = this.diameter();
         final float[][] smoothMap = new float[diameter][diameter];
         final float[][] scratchMap = new float[diameter][diameter];
 
@@ -103,9 +126,9 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
             }
         }
 
-        for (int pass = 0; pass < config.blurPasses(); pass++) {
-            this.blurAlongX(floorMap, smoothMap, scratchMap, config);
-            this.blurAlongZ(floorMap, scratchMap, smoothMap, config);
+        for (int pass = 0; pass < this.blurPasses; pass++) {
+            this.blurAlongX(floorMap, smoothMap, scratchMap);
+            this.blurAlongZ(floorMap, scratchMap, smoothMap);
         }
         return smoothMap;
     }
@@ -116,8 +139,8 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         }
     }
 
-    private @Nullable BlockState selectSurfaceState(final WorldGenLevel level, final BlockPos pos, final RandomSource random, final int targetLayers, final Configuration config) {
-        final BlockState icePatch = this.sampleIcePatch(pos, random, targetLayers, config);
+    private @Nullable BlockState selectSurfaceState(final WorldGenLevel level, final BlockPos pos, final RandomSource random, final int targetLayers) {
+        final BlockState icePatch = this.sampleIcePatch(level, pos, random, targetLayers);
         if (icePatch != null) {
             return icePatch.canSurvive(level, pos) ? icePatch : null;
         }
@@ -126,17 +149,17 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         return snow.canSurvive(level, pos) ? snow : null;
     }
 
-    private int computeTargetLayers(final int floorY, final float smoothHeight, final Configuration config) {
-        final float clampedSmoothHeight = Math.max(smoothHeight, floorY + config.minSmoothOffset());
+    private int computeTargetLayers(final int floorY, final float smoothHeight) {
+        final float clampedSmoothHeight = Math.max(smoothHeight, floorY + this.minSmoothOffset);
         return Mth.clamp(
-                Math.round((clampedSmoothHeight - floorY) * config.layerScale()),
+                Math.round((clampedSmoothHeight - floorY) * this.layerScale),
                 1,
                 SnowLayerBlock.MAX_HEIGHT
         );
     }
 
-    private void blur(final int[][] floorMap, final float[][] source, final float[][] target, final boolean alongX, final Configuration config) {
-        final int diameter = config.diameter();
+    private void blur(final int[][] floorMap, final float[][] source, final float[][] target, final boolean alongX) {
+        final int diameter = this.diameter();
         for (int x = 0; x < diameter; x++) {
             for (int z = 0; z < diameter; z++) {
                 if (floorMap[x][z] == NO_FLOOR) {
@@ -152,7 +175,7 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
                     if (!this.isSampledFloor(floorMap, sampleX, sampleZ, diameter)) {
                         continue;
                     }
-                    final float sampleWeight = offset == 0 ? config.centerWeight() : config.sideWeight();
+                    final float sampleWeight = offset == 0 ? this.centerWeight : this.sideWeight;
                     sum += source[sampleX][sampleZ] * sampleWeight;
                     weight += sampleWeight;
                 }
@@ -161,12 +184,12 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         }
     }
 
-    private void blurAlongX(final int[][] floorMap, final float[][] source, final float[][] target, final Configuration config) {
-        this.blur(floorMap, source, target, true, config);
+    private void blurAlongX(final int[][] floorMap, final float[][] source, final float[][] target) {
+        this.blur(floorMap, source, target, true);
     }
 
-    private void blurAlongZ(final int[][] floorMap, final float[][] source, final float[][] target, final Configuration config) {
-        this.blur(floorMap, source, target, false, config);
+    private void blurAlongZ(final int[][] floorMap, final float[][] source, final float[][] target) {
+        this.blur(floorMap, source, target, false);
     }
 
     private @Nullable Integer findFloor(final WorldGenLevel level, final int x, final int startY, final int z, final int range) {
@@ -184,42 +207,14 @@ public final class CaveSnowCoverFeature extends Feature<CaveSnowCoverFeature.Con
         return null;
     }
 
-    private @Nullable BlockState sampleIcePatch(final BlockPos pos, final RandomSource random, final int targetLayers, final Configuration config) {
-        if (targetLayers > config.maxIcePatchLayers()) {
+    private @Nullable BlockState sampleIcePatch(final WorldGenLevel level, final BlockPos pos, final RandomSource random, final int targetLayers) {
+        if (targetLayers > this.maxIcePatchLayers) {
             return null;
         }
-        return config.icePatchProvider().getState(random, pos);
+        return this.icePatchProvider.value().getState(level, random, pos);
     }
 
     private boolean isSampledFloor(final int[][] floorMap, final int x, final int z, final int diameter) {
         return x >= 0 && x < diameter && z >= 0 && z < diameter && floorMap[x][z] != NO_FLOOR;
-    }
-
-    public record Configuration(
-            int radius,
-            int verticalSearchRange,
-            int blurPasses,
-            float minSmoothOffset,
-            float layerScale,
-            float centerWeight,
-            float sideWeight,
-            int maxIcePatchLayers,
-            BlockStateProvider icePatchProvider
-    ) implements FeatureConfiguration {
-        public static final Codec<Configuration> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                Codec.INT.fieldOf("radius").forGetter(Configuration::radius),
-                Codec.INT.fieldOf("vertical_search_range").forGetter(Configuration::verticalSearchRange),
-                Codec.INT.fieldOf("blur_passes").forGetter(Configuration::blurPasses),
-                Codec.FLOAT.fieldOf("min_smooth_offset").forGetter(Configuration::minSmoothOffset),
-                Codec.FLOAT.fieldOf("layer_scale").forGetter(Configuration::layerScale),
-                Codec.FLOAT.fieldOf("center_weight").forGetter(Configuration::centerWeight),
-                Codec.FLOAT.fieldOf("side_weight").forGetter(Configuration::sideWeight),
-                Codec.INT.fieldOf("max_ice_patch_layers").forGetter(Configuration::maxIcePatchLayers),
-                BlockStateProvider.CODEC.fieldOf("ice_patch_provider").forGetter(Configuration::icePatchProvider)
-        ).apply(instance, Configuration::new));
-
-        public int diameter() {
-            return this.radius * 2 + 1;
-        }
     }
 }

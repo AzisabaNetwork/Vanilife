@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 
 public final class ResourceLightEngine extends SkyStarLightEngine {
     public static boolean shouldUse(final Level level) {
-        return level instanceof ServerLevel serverLevel && serverLevel.chunkSource.getGenerator() instanceof ResourceChunkGenerator;
+        return level instanceof ServerLevel serverLevel && serverLevel.getChunkSource().getGenerator() instanceof ResourceChunkGenerator;
     }
 
     @Override
@@ -38,8 +38,8 @@ public final class ResourceLightEngine extends SkyStarLightEngine {
         Arrays.fill(this.nullPropagationCheckCache, false);
 
         final BlockGetter world = lightAccess.getLevel();
-        final int chunkX = atChunk.getPos().x;
-        final int chunkZ = atChunk.getPos().z;
+        final int chunkX = atChunk.getPos().x();
+        final int chunkZ = atChunk.getPos().z();
         final int heightMapOffset = chunkX * -16 + (chunkZ * (-16 * 16));
 
         for (final BlockPos pos : positions) {
@@ -85,8 +85,8 @@ public final class ResourceLightEngine extends SkyStarLightEngine {
 
         final BlockGetter world = lightAccess.getLevel();
         final ChunkPos chunkPos = chunk.getPos();
-        final int chunkX = chunkPos.x;
-        final int chunkZ = chunkPos.z;
+        final int chunkX = chunkPos.x();
+        final int chunkZ = chunkPos.z();
 
         final LevelChunkSection[] sections = chunk.getSections();
 
@@ -141,10 +141,10 @@ public final class ResourceLightEngine extends SkyStarLightEngine {
         }
 
         if (highestNonEmptySection >= this.minSection) {
-            final int minX = chunkPos.x << 4;
-            final int maxX = chunkPos.x << 4 | 15;
-            final int minZ = chunkPos.z << 4;
-            final int maxZ = chunkPos.z << 4 | 15;
+            final int minX = chunkPos.x() << 4;
+            final int maxX = chunkPos.x() << 4 | 15;
+            final int minZ = chunkPos.z() << 4;
+            final int maxZ = chunkPos.z() << 4 | 15;
             for (int currZ = minZ; currZ <= maxZ; ++currZ) {
                 for (int currX = minX; currX <= maxX; ++currX) {
                     for (final ResourceLayer.Type layerType : resourceLayout) {
@@ -306,7 +306,7 @@ public final class ResourceLightEngine extends SkyStarLightEngine {
                 flags |= FLAG_HAS_SIDED_TRANSPARENT_BLOCKS;
             }
 
-            final int opacity = current.getLightBlock();
+            final int opacity = current.getLightDampening();
             if (opacity > 0) {
                 break;
             }

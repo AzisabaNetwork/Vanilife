@@ -123,7 +123,9 @@ public class ResourceLayer extends ProtoChunk {
         );
 
         public static ResourceLayer.Type overworld(final RegistryOps.RegistryInfoLookup lookup) {
-            final Holder<NoiseGeneratorSettings> noiseGeneratorSettings = Holder.direct(ResourceNoiseGeneratorSettings.overworld(lookup));
+            final Holder.Reference<NoiseGeneratorSettings> noiseGeneratorSettings = lookup.lookup(Registries.NOISE_SETTINGS)
+                .orElseThrow()
+                .getOrThrow(NoiseGeneratorSettings.OVERWORLD);
             return new ResourceLayer.Type(
                 DimensionDefaults.OVERWORLD_GENERATION_HEIGHT,
                 HeightmapSet.RESOURCE_OVERWORLD,
@@ -134,9 +136,10 @@ public class ResourceLayer extends ProtoChunk {
         public static ResourceLayer.Type nether(final RegistryOps.RegistryInfoLookup lookup) {
             final Holder<MultiNoiseBiomeSourceParameterList> parameterList = lookup.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
                 .orElseThrow()
-                .getter()
                 .getOrThrow(MultiNoiseBiomeSourceParameterLists.NETHER);
-            final Holder<NoiseGeneratorSettings> noiseGeneratorSettings = Holder.direct(ResourceNoiseGeneratorSettings.nether(lookup));
+            final Holder.Reference<NoiseGeneratorSettings> noiseGeneratorSettings = lookup.lookup(Registries.NOISE_SETTINGS)
+                .orElseThrow()
+                .getOrThrow(NoiseGeneratorSettings.NETHER);
             return new ResourceLayer.Type(
                 DimensionDefaults.NETHER_GENERATION_HEIGHT,
                 HeightmapSet.RESOURCE_NETHER,
@@ -146,11 +149,9 @@ public class ResourceLayer extends ProtoChunk {
 
         public static ResourceLayer.Type end(final RegistryOps.RegistryInfoLookup lookup) {
             final HolderGetter<Biome> biomes = lookup.lookup(Registries.BIOME)
-                .orElseThrow()
-                .getter();
+                .orElseThrow();
             final Holder.Reference<NoiseGeneratorSettings> noiseGeneratorSettings = lookup.lookup(Registries.NOISE_SETTINGS)
                 .orElseThrow()
-                .getter()
                 .getOrThrow(NoiseGeneratorSettings.END);
             return new ResourceLayer.Type(
                 DimensionDefaults.END_GENERATION_HEIGHT,

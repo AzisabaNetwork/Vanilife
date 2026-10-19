@@ -1,35 +1,36 @@
 package net.azisaba.vanilife.server.world.feature;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import io.papermc.paper.math.BlockPosition;
 import net.azisaba.vanilife.world.IslandPosition;
 import net.azisaba.vanilife.world.IslandsWorld;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.RandomSource;
 import net.minecraft.core.SectionPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.FarmBlock;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 
-public final class IslandWheatPatchFeature extends Feature<NoneFeatureConfiguration> {
-    public IslandWheatPatchFeature(final Codec<NoneFeatureConfiguration> codec) {
-        super(codec);
+public record IslandWheatPatchFeature() implements Feature {
+    public static final MapCodec<IslandWheatPatchFeature> CODEC = MapCodec.unit(IslandWheatPatchFeature::new);
+
+    @Override
+    public MapCodec<IslandWheatPatchFeature> codec() {
+        return CODEC;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<NoneFeatureConfiguration> context) {
-        final WorldGenLevel level = context.level();
-        final IslandPosition islandPos = IslandPosition.fromBlockXZ(context.origin().getX(), context.origin().getZ());
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource randomSource, final BlockPos origin) {
+        final IslandPosition islandPos = IslandPosition.fromBlockXZ(origin.getX(), origin.getZ());
         final long seed = islandPos.computeSeed(level.getSeed()) ^ 0x51C2E6B4D9A3F17BL;
         final RandomSource random = RandomSource.create(seed);
-        final ChunkPos currentChunk = new ChunkPos(context.origin());
+        final ChunkPos currentChunk = ChunkPos.containing(origin);
         final BlockPosition spawnBlock = islandPos.defaultSpawnPosition(level.getSeed());
         boolean placed = false;
 
@@ -68,7 +69,7 @@ public final class IslandWheatPatchFeature extends Feature<NoneFeatureConfigurat
         }
 
         clearAbove(level, cropPos);
-        level.setBlock(ground, Blocks.FARMLAND.defaultBlockState().setValue(FarmBlock.MOISTURE, FarmBlock.MAX_MOISTURE), 2);
+        level.setBlock(ground, Blocks.FARMLAND.defaultBlockState().setValue(FarmlandBlock.MOISTURE, FarmlandBlock.MAX_MOISTURE), 2);
         level.setBlock(cropPos, Blocks.WHEAT.defaultBlockState().setValue(CropBlock.AGE, CropBlock.MAX_AGE), 2);
 
         if (random.nextFloat() < 0.25f) {
@@ -99,7 +100,7 @@ public final class IslandWheatPatchFeature extends Feature<NoneFeatureConfigurat
     }
 
     private boolean isSameChunk(final BlockPos pos, final ChunkPos chunkPos) {
-        return SectionPos.blockToSectionCoord(pos.getX()) == chunkPos.x && SectionPos.blockToSectionCoord(pos.getZ()) == chunkPos.z;
+        return SectionPos.blockToSectionCoord(pos.getX()) == chunkPos.x() && SectionPos.blockToSectionCoord(pos.getZ()) == chunkPos.z();
     }
 
     private boolean hasChunkMargin(final BlockPos pos, final int margin) {

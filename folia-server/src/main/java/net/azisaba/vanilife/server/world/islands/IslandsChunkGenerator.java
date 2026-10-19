@@ -71,14 +71,18 @@ public final class IslandsChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public CompletableFuture<ChunkAccess> fillFromNoise(
+    public CompletableFuture<ChunkAccess> buildTerrain(
+        final ChunkAccess chunk,
         final Blender blender,
         final RandomState randomState,
         final StructureManager structureManager,
-        final ChunkAccess chunk,
-        final HeightContext heightContext
+        final BiomeManager biomeManager,
+        final @org.jspecify.annotations.Nullable WorldGenRegion carverBiomeRegion,
+        final java.util.Set<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>> possibleBiomes
     ) {
-        final long levelSeed = structureManager.level.getMinecraftWorld().getSeed();
+        final long levelSeed = carverBiomeRegion != null
+            ? carverBiomeRegion.getSeed()
+            : (structureManager.level != null ? structureManager.level.getMinecraftWorld().getSeed() : 0L);
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
         for (int dx = 0; dx < 16; dx++) {
@@ -89,18 +93,11 @@ public final class IslandsChunkGenerator extends ChunkGenerator {
             }
         }
 
-        return CompletableFuture.completedFuture(chunk);
-    }
+        if (carverBiomeRegion != null) {
+            this.reefDecorator.buildSurface(carverBiomeRegion, chunk.getPos());
+        }
 
-    @Override
-    public void buildSurface(
-        final WorldGenRegion region,
-        final StructureManager structureManager,
-        final RandomState random,
-        final ChunkAccess chunk,
-        final HeightContext heightContext
-    ) {
-        this.reefDecorator.buildSurface(region, chunk.getPos());
+        return CompletableFuture.completedFuture(chunk);
     }
 
     @Override
@@ -130,18 +127,6 @@ public final class IslandsChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public void applyCarvers(
-        final WorldGenRegion region,
-        final long seed,
-        final RandomState random,
-        final BiomeManager biomeManager,
-        final StructureManager structureManager,
-        final ChunkAccess chunk,
-        final HeightContext heightContext
-    ) {
-    }
-
-    @Override
     public void createStructures(
         final RegistryAccess registryAccess,
         final ChunkGeneratorStructureState structureState,
@@ -158,7 +143,12 @@ public final class IslandsChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public void addDebugScreenInfo(final List<String> info, final RandomState random, final BlockPos pos) {
+    public void addDebugScreenInfo(
+        final List<String> info,
+        final RandomState random,
+        final BlockPos pos,
+        final net.minecraft.world.level.levelgen.densityfunction.SamplerContext samplerContext
+    ) {
     }
 
     private void fillTerrainColumn(

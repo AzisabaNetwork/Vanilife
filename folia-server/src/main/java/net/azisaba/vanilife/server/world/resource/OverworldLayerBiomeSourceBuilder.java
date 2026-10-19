@@ -9,7 +9,11 @@ import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.biome.*;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
 
 public final class OverworldLayerBiomeSourceBuilder {
     private final Climate.Parameter FULL_RANGE = Climate.Parameter.span(-1.0F, 1.0F);
@@ -17,7 +21,7 @@ public final class OverworldLayerBiomeSourceBuilder {
     private static final Climate.Parameter SNOWY_HUMIDITY = Climate.Parameter.span(0.2F, 1.0F);
 
     public BiomeSource build(final RegistryOps.RegistryInfoLookup lookup) {
-        final HolderGetter<Biome> biomes = lookup.lookup(Registries.BIOME).orElseThrow().getter();
+        final HolderGetter<Biome> biomes = lookup.lookup(Registries.BIOME).orElseThrow();
         final ImmutableList.Builder<Pair<Climate.ParameterPoint, ResourceKey<Biome>>> builder = ImmutableList.builder();
 
         addVanillaOverworldBiomes(builder);

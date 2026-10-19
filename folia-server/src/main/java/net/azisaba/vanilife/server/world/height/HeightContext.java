@@ -86,16 +86,26 @@ public abstract class HeightContext implements HeightmapContext {
     }
 
     public static class Vanilla extends HeightContext {
-        private final WorldGenLevel worldGenRegion;
+        private final net.minecraft.world.level.LevelHeightAccessor level;
+        private final int seaLevel;
+
+        public Vanilla(final net.minecraft.world.level.LevelHeightAccessor level, final int seaLevel) {
+            super(HeightmapSet.VANILLA);
+            this.level = level;
+            this.seaLevel = seaLevel;
+        }
+
+        public Vanilla(final net.minecraft.world.level.LevelHeightAccessor level) {
+            this(level, 63);
+        }
 
         public Vanilla(final WorldGenLevel level) {
-            super(HeightmapSet.VANILLA);
-            this.worldGenRegion = level;
+            this(level, level.getSeaLevel());
         }
 
         @Override
         public int seaLevel() {
-            return this.worldGenRegion.getSeaLevel();
+            return this.seaLevel;
         }
 
         @Override
@@ -110,12 +120,12 @@ public abstract class HeightContext implements HeightmapContext {
 
         @Override
         public int minY() {
-            return this.worldGenRegion.getMinY();
+            return this.level.getMinY();
         }
 
         @Override
         public int maxY() {
-            return this.worldGenRegion.getMaxY();
+            return this.level.getMaxY();
         }
     }
 

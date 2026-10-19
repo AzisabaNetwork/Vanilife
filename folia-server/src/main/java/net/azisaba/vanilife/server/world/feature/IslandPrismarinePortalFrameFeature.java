@@ -1,36 +1,38 @@
 package net.azisaba.vanilife.server.world.feature;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.azisaba.vanilife.world.IslandPosition;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public final class IslandPrismarinePortalFrameFeature extends Feature<NoneFeatureConfiguration> {
-    public IslandPrismarinePortalFrameFeature(final Codec<NoneFeatureConfiguration> codec) {
-        super(codec);
+public record IslandPrismarinePortalFrameFeature() implements Feature {
+    public static final MapCodec<IslandPrismarinePortalFrameFeature> CODEC = MapCodec.unit(IslandPrismarinePortalFrameFeature::new);
+
+    @Override
+    public MapCodec<IslandPrismarinePortalFrameFeature> codec() {
+        return CODEC;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<NoneFeatureConfiguration> context) {
-        final WorldGenLevel level = context.level();
-        final ChunkPos currentChunk = new ChunkPos(context.origin());
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
+        final ChunkPos currentChunk = ChunkPos.containing(origin);
         final long levelSeed = level.getSeed();
         for (final IslandPosition islandPos : candidateIslands(currentChunk)) {
             final int portalX = islandPos.defaultPortalPosition(levelSeed).blockX();
             final int portalZ = islandPos.defaultPortalPosition(levelSeed).blockZ();
 
-            if (SectionPos.blockToSectionCoord(portalX) != currentChunk.x || SectionPos.blockToSectionCoord(portalZ) != currentChunk.z) {
+            if (SectionPos.blockToSectionCoord(portalX) != currentChunk.x() || SectionPos.blockToSectionCoord(portalZ) != currentChunk.z()) {
                 continue;
             }
 
@@ -106,7 +108,7 @@ public final class IslandPrismarinePortalFrameFeature extends Feature<NoneFeatur
     }
 
     private boolean isSameChunk(final BlockPos pos, final ChunkPos chunkPos) {
-        return SectionPos.blockToSectionCoord(pos.getX()) == chunkPos.x && SectionPos.blockToSectionCoord(pos.getZ()) == chunkPos.z;
+        return SectionPos.blockToSectionCoord(pos.getX()) == chunkPos.x() && SectionPos.blockToSectionCoord(pos.getZ()) == chunkPos.z();
     }
 
     private boolean fitsChunk(final BlockPos pos, final boolean axisX) {

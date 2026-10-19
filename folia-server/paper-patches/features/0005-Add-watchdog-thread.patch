@@ -7,7 +7,7 @@ When regions take too long, having the server print the stacktrace
 of the ticking region should help debug the cause.
 
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index e2dc6644ae44ce02821100275ede4b0712cf260d..3e73e674823b34879572135eaa6ab47807c29023 100644
+index ab6c553f0f5c228e65c95538fc2deef07d9cd077..5607f4cc8ca2f620461eb5e97d01d9db0d6b2303 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -156,7 +156,7 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre

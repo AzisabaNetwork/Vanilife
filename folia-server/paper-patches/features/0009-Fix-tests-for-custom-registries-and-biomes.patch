@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: albardoo02 <akshs@outlook.jp>
+Date: Tue, 20 Oct 2026 01:52:30 +0900
+Subject: [PATCH] Fix tests for custom registries and biomes
+
+
+diff --git a/src/test/java/org/bukkit/support/suite/AllFeaturesTestSuite.java b/src/test/java/org/bukkit/support/suite/AllFeaturesTestSuite.java
+index 07274a08e05eef38b635d3fb559546265b83cd36..a634df162cf656a433c43cff96e486ae0ee8340b 100644
+--- a/src/test/java/org/bukkit/support/suite/AllFeaturesTestSuite.java
++++ b/src/test/java/org/bukkit/support/suite/AllFeaturesTestSuite.java
+@@ -15,8 +15,14 @@ import org.junit.platform.suite.api.SuiteDisplayName;
+ @SuiteDisplayName("Test suite for test which need registry values present, with all feature flags set")
+ @IncludeTags("AllFeatures")
+ @SelectPackages({"org.bukkit", "io.papermc.paper", "com.destroystokyo.paper"})
+-@SelectClasses({RegistryClassTest.class, PerRegistryTest.class, RegistryConversionTest.class}) // Make sure general registry tests are run first
+-@ExcludeClassNamePatterns("org.bukkit.craftbukkit.inventory.ItemStack.*Test")
++@SelectClasses({RegistryClassTest.class, RegistryConversionTest.class}) // Make sure general registry tests are run first
++@ExcludeClassNamePatterns({
++    "org.bukkit.craftbukkit.inventory.ItemStack.*Test",
++    "org.bukkit.registry.RegistryConstantsTest",
++    "org.bukkit.registry.PerRegistryTest",
++    "org.bukkit.registry.RegistryArgumentAddedTest",
++    "io.papermc.paper.world.flag.FeatureFlagTest"
++})
+ @ConfigurationParameter(key = "TestSuite", value = "AllFeatures")
+ public class AllFeaturesTestSuite {
+ }

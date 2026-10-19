@@ -13,6 +13,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.ARGB;
 import net.minecraft.data.worldgen.Carvers;
 import net.minecraft.world.attribute.AmbientParticle;
 import net.minecraft.world.attribute.EnvironmentAttributes;
@@ -22,7 +23,7 @@ import net.minecraft.world.level.biome.BiomeGenerationSettings;
 import net.minecraft.world.level.biome.BiomeSpecialEffects;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
+import net.minecraft.world.level.levelgen.carver.WorldCarver;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 public final class VanilifeBiomes {
     public static final ResourceKey<Biome> ISLANDS = ResourceKey.create(Registries.BIOME, Identifier.fromNamespaceAndPath(Vanilife.NAMESPACE, "islands"));
@@ -35,12 +36,10 @@ public final class VanilifeBiomes {
 
     public static void bootstrap(final WritableRegistry<Biome> writable, final RegistryOps.RegistryInfoLookup lookup) {
         final HolderGetter<PlacedFeature> placedFeature = lookup.lookup(Registries.PLACED_FEATURE)
-            .orElseThrow()
-            .getter();
+            .orElseThrow();
 
-        final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers = lookup.lookup(Registries.CONFIGURED_CARVER)
-            .orElseThrow()
-            .getter();
+        final HolderGetter<WorldCarver> worldCarvers = lookup.lookup(Registries.CARVER)
+            .orElseThrow();
 
         writable.register(VanilifeBiomes.ISLANDS, VanilifeBiomes.islands(placedFeature, worldCarvers), RegistrationInfo.BUILT_IN);
         writable.register(VanilifeBiomes.END_BARRENS, VanilifeBiomes.endBarrens(placedFeature, worldCarvers), RegistrationInfo.BUILT_IN);
@@ -51,7 +50,7 @@ public final class VanilifeBiomes {
         writable.register(VanilifeBiomes.THE_END, VanilifeBiomes.theEnd(placedFeature, worldCarvers), RegistrationInfo.BUILT_IN);
     }
 
-    private static Biome islands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome islands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         final MobSpawnSettings.Builder mobSpawnSettings = new MobSpawnSettings.Builder();
 
         final BiomeGenerationSettings.Builder generationSettings = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers);
@@ -81,29 +80,29 @@ public final class VanilifeBiomes {
                 .build())
             .mobSpawnSettings(mobSpawnSettings.build())
             .generationSettings(generationSettings.build())
-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, 1324383)
+            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(1324383))
             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_MEADOW))
             .build();
     }
 
-    private static Biome endBarrens(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome endBarrens(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers);
         return baseEndBiome(builder);
     }
 
-    private static Biome endMidlands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome endMidlands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers);
         return baseEndBiome(builder);
     }
 
-    private static Biome endHighlands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome endHighlands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers)
             .addFeature(GenerationStep.Decoration.SURFACE_STRUCTURES, EndPlacements.END_GATEWAY_RETURN)
             .addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, EndPlacements.CHORUS_PLANT);
         return baseEndBiome(builder);
     }
 
-    private static Biome glacialCave(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome glacialCave(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         final MobSpawnSettings.Builder mobSpawnSettings = new MobSpawnSettings.Builder();
         BiomeDefaultFeatures.caveSpawns(mobSpawnSettings);
 
@@ -135,25 +134,25 @@ public final class VanilifeBiomes {
                 .build())
             .mobSpawnSettings(mobSpawnSettings.build())
             .generationSettings(generationSettings.build())
-            .setAttribute(EnvironmentAttributes.FOG_COLOR, -1084823)
-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -14606047)
+            .setAttribute(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(-1084823))
+            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-14606047))
             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_FROZEN_PEAKS))
             .setAttribute(EnvironmentAttributes.INCREASED_FIRE_BURNOUT, true)
             .setAttribute(EnvironmentAttributes.AMBIENT_PARTICLES, AmbientParticle.of(ParticleTypes.WHITE_ASH, 0.6f))
             .setAttribute(EnvironmentAttributes.FOG_END_DISTANCE, 196.0f)
             .setAttribute(EnvironmentAttributes.FOG_START_DISTANCE, -1.0f)
-            .setAttribute(EnvironmentAttributes.SKY_LIGHT_COLOR, 8026879)
+            .setAttribute(EnvironmentAttributes.SKY_LIGHT_COLOR, ARGB.vector3fFromRGB24(8026879))
             .setAttribute(EnvironmentAttributes.SKY_LIGHT_FACTOR, 0.0f)
             .build();
     }
 
-    private static Biome smallEndIslands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome smallEndIslands(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers)
             .addFeature(GenerationStep.Decoration.RAW_GENERATION, EndPlacements.END_ISLAND_DECORATED);
         return baseEndBiome(builder);
     }
 
-    private static Biome theEnd(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<ConfiguredWorldCarver<?>> worldCarvers) {
+    private static Biome theEnd(final HolderGetter<PlacedFeature> placedFeatures, final HolderGetter<WorldCarver> worldCarvers) {
         BiomeGenerationSettings.Builder builder = new BiomeGenerationSettings.Builder(placedFeatures, worldCarvers)
             .addFeature(GenerationStep.Decoration.SURFACE_STRUCTURES, EndPlacements.END_SPIKE)
             .addFeature(GenerationStep.Decoration.TOP_LAYER_MODIFICATION, EndPlacements.END_PLATFORM);
@@ -170,8 +169,8 @@ public final class VanilifeBiomes {
             .specialEffects(new BiomeSpecialEffects.Builder().waterColor(4159204).build())
             .mobSpawnSettings(mobSpawnSettings.build())
             .generationSettings(generationSettings.build())
-            .setAttribute(EnvironmentAttributes.SKY_COLOR, 1250067)
-            .setAttribute(EnvironmentAttributes.FOG_COLOR, 9538492)
+            .setAttribute(EnvironmentAttributes.SKY_COLOR, ARGB.vector3fFromRGB24(1250067))
+            .setAttribute(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(9538492))
             .build();
     }
 }

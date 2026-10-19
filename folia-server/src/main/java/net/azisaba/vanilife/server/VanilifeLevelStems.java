@@ -34,7 +34,6 @@ public final class VanilifeLevelStems {
     private static LevelStem resource(final RegistryOps.RegistryInfoLookup lookup) {
         final Holder<DimensionType> dimensionType = lookup.lookup(Registries.DIMENSION_TYPE)
             .orElseThrow()
-            .getter()
             .getOrThrow(VanilifeDimensionTypes.RESOURCE);
         final ResourceChunkGenerator generator = new ResourceChunkGenerator(
             new ResourceLayout(
@@ -52,11 +51,9 @@ public final class VanilifeLevelStems {
     private static LevelStem islands(final RegistryOps.RegistryInfoLookup lookup) {
         final Holder<DimensionType> dimensionType = lookup.lookup(Registries.DIMENSION_TYPE)
             .orElseThrow()
-            .getter()
             .getOrThrow(VanilifeDimensionTypes.ISLANDS);
         final Holder<Biome> biome = lookup.lookup(Registries.BIOME)
             .orElseThrow()
-            .getter()
             .getOrThrow(VanilifeBiomes.ISLANDS);
         final BiomeSource biomeSource = new FixedBiomeSource(biome);
         final IslandsChunkGenerator generator = new IslandsChunkGenerator(

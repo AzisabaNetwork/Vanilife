@@ -1,16 +1,18 @@
 package net.azisaba.vanilife.server.world.feature;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-public final class CaveIcePillarFeature extends Feature<NoneFeatureConfiguration> {
+
+public record CaveIcePillarFeature() implements Feature {
+    public static final MapCodec<CaveIcePillarFeature> CODEC = MapCodec.unit(CaveIcePillarFeature::new);
+
     private static final int MIN_HEIGHT = 4;
     private static final int MAX_HEIGHT = 12;
     private static final int MIN_RADIUS = 2;
@@ -19,15 +21,13 @@ public final class CaveIcePillarFeature extends Feature<NoneFeatureConfiguration
     private static final int SURFACE_LAYER_THICKNESS = 2;
     private static final int VERTICAL_SURFACE_SEARCH_RANGE = 16;
 
-    public CaveIcePillarFeature(final Codec<NoneFeatureConfiguration> codec) {
-        super(codec);
+    @Override
+    public MapCodec<CaveIcePillarFeature> codec() {
+        return CODEC;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<NoneFeatureConfiguration> context) {
-        final WorldGenLevel level = context.level();
-        final BlockPos origin = context.origin();
-        final RandomSource random = context.random();
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
         final BlockState originState = level.getBlockState(origin);
         if (!originState.isAir() && !originState.is(Blocks.WATER)) {
             return false;

@@ -5,7 +5,7 @@ Subject: [PATCH] Add TPS From Region
 
 
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 14d81c7b138ebf999d5812d26fbf869209c100f3..72fd32341a1efbe48997c951d9a00ca721dc4b00 100644
+index 833e3833ed59b940724f805a31d0ad8860e8ed7f..d493ee60c76ba926ccb2aa4cddb16d4da13aa426 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
 @@ -15,6 +15,9 @@ import java.util.UUID;
@@ -18,9 +18,9 @@ index 14d81c7b138ebf999d5812d26fbf869209c100f3..72fd32341a1efbe48997c951d9a00ca7
  import net.kyori.adventure.text.Component;
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
-@@ -901,6 +904,11 @@ public final class Bukkit {
+@@ -904,6 +907,11 @@ public final class Bukkit {
+         return server.getWorld(worldKey);
      }
-     // Paper end
  
 +    @Modified(Op.ADD_METHOD)
 +    public static World getIslandsWorld() {
@@ -30,7 +30,7 @@ index 14d81c7b138ebf999d5812d26fbf869209c100f3..72fd32341a1efbe48997c951d9a00ca7
      /**
       * Create a new virtual {@link WorldBorder}.
       *
-@@ -2987,6 +2995,42 @@ public final class Bukkit {
+@@ -3038,6 +3046,42 @@ public final class Bukkit {
          return server.isGlobalTickThread();
      }
      // Paper end - Folia region threading API
@@ -74,10 +74,10 @@ index 14d81c7b138ebf999d5812d26fbf869209c100f3..72fd32341a1efbe48997c951d9a00ca7
      /**
       * @deprecated All methods on this class have been deprecated, see the individual methods for replacements.
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 0ec885b97d655c03371840d739b47063494ed36f..1dc5d8c96786950fc98cada5bad981c0c716b154 100644
+index f456e99da44063f8a5c23472e58da24e1385fc22..e8ffeb8ea740007579dd1f086acb2a090863555e 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
-@@ -2761,4 +2761,34 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2815,4 +2815,34 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
       */
      void allowPausing(@NotNull org.bukkit.plugin.Plugin plugin, boolean value);
      // Paper end - API to check if the server is sleeping

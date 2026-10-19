@@ -14,16 +14,18 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.VerticalAnchor;
 import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate;
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.levelgen.placement.BlockPredicateFilter;
+import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.placement.BiomeFilter;
+import net.minecraft.world.level.levelgen.placement.BlockPredicateFilter;
 import net.minecraft.world.level.levelgen.placement.CountPlacement;
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement;
 import net.minecraft.world.level.levelgen.placement.HeightmapPlacement;
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraft.world.level.levelgen.placement.RarityFilter;
+
 import java.util.List;
+
 public final class VanilifePlacedFeatures {
     public static final ResourceKey<PlacedFeature> ISLAND_CONIFER_TREE = ResourceKey.create(Registries.PLACED_FEATURE, Identifier.fromNamespaceAndPath(Vanilife.NAMESPACE, "island_conifer_tree"));
     public static final ResourceKey<PlacedFeature> ISLAND_JUNGLE_BUSH = ResourceKey.create(Registries.PLACED_FEATURE, Identifier.fromNamespaceAndPath(Vanilife.NAMESPACE, "island_jungle_bush"));
@@ -42,34 +44,33 @@ public final class VanilifePlacedFeatures {
     }
 
     public static void bootstrap(final WritableRegistry<PlacedFeature> writable, final RegistryOps.RegistryInfoLookup lookup) {
-        final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures = lookup.lookup(Registries.CONFIGURED_FEATURE)
-            .orElseThrow()
-            .getter();
+        final HolderGetter<Feature> features = lookup.lookup(Registries.FEATURE)
+            .orElseThrow();
 
-        writable.register(ISLAND_CONIFER_TREE, islandConiferTree(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_JUNGLE_BUSH, islandJungleBush(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_FALLEN_JUNGLE_TREE, islandFallenJungleTree(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_GROUND_PATCH, islandGroundPatch(configuredFeatures, VanilifeConfiguredFeatures.ISLAND_GROUND_PATCH, 2), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_BEACH_PATCH, islandGroundPatch(configuredFeatures, VanilifeConfiguredFeatures.ISLAND_BEACH_PATCH, 2), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_SPAWN_WRECKAGE, islandChunkFeature(configuredFeatures, VanilifeConfiguredFeatures.ISLAND_SPAWN_WRECKAGE), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_WHEAT_PATCH, islandChunkFeature(configuredFeatures, VanilifeConfiguredFeatures.ISLAND_WHEAT_PATCH), RegistrationInfo.BUILT_IN);
-        writable.register(ISLAND_PRISMARINE_PORTAL_FRAME, islandChunkFeature(configuredFeatures, VanilifeConfiguredFeatures.ISLAND_PRISMARINE_PORTAL_FRAME), RegistrationInfo.BUILT_IN);
-        writable.register(CAVE_ICE_CLUSTER, caveIceCluster(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(CAVE_ICE_PILLAR, caveIcePillar(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(CAVE_SNOW_COVER, caveSnowCover(configuredFeatures), RegistrationInfo.BUILT_IN);
-        writable.register(CAVE_WALL_FROST, caveWallFrost(configuredFeatures), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_CONIFER_TREE, islandConiferTree(features), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_JUNGLE_BUSH, islandJungleBush(features), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_FALLEN_JUNGLE_TREE, islandFallenJungleTree(features), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_GROUND_PATCH, islandGroundPatch(features, VanilifeConfiguredFeatures.ISLAND_GROUND_PATCH, 2), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_BEACH_PATCH, islandGroundPatch(features, VanilifeConfiguredFeatures.ISLAND_BEACH_PATCH, 2), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_SPAWN_WRECKAGE, islandChunkFeature(features, VanilifeConfiguredFeatures.ISLAND_SPAWN_WRECKAGE), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_WHEAT_PATCH, islandChunkFeature(features, VanilifeConfiguredFeatures.ISLAND_WHEAT_PATCH), RegistrationInfo.BUILT_IN);
+        writable.register(ISLAND_PRISMARINE_PORTAL_FRAME, islandChunkFeature(features, VanilifeConfiguredFeatures.ISLAND_PRISMARINE_PORTAL_FRAME), RegistrationInfo.BUILT_IN);
+        writable.register(CAVE_ICE_CLUSTER, caveIceCluster(features), RegistrationInfo.BUILT_IN);
+        writable.register(CAVE_ICE_PILLAR, caveIcePillar(features), RegistrationInfo.BUILT_IN);
+        writable.register(CAVE_SNOW_COVER, caveSnowCover(features), RegistrationInfo.BUILT_IN);
+        writable.register(CAVE_WALL_FROST, caveWallFrost(features), RegistrationInfo.BUILT_IN);
     }
 
-    private static PlacedFeature islandFallenJungleTree(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature islandFallenJungleTree(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(TreeFeatures.FALLEN_OAK_TREE),
+            features.getOrThrow(TreeFeatures.FALLEN_OAK_TREE),
             List.of(
                 RarityFilter.onAverageOnceEvery(5),
                 InSquarePlacement.spread(),
                 HeightmapPlacement.onHeightmap(Heightmap.Types.WORLD_SURFACE_WG),
                 BlockPredicateFilter.forPredicate(
                     BlockPredicate.allOf(
-                        BlockPredicate.matchesBlocks(Direction.DOWN.getUnitVec3i(), Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
+                        BlockPredicate.matchesBlocks(Direction.DOWN, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
                         BlockPredicate.ONLY_IN_AIR_PREDICATE
                     )
                 ),
@@ -78,16 +79,16 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature islandConiferTree(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature islandConiferTree(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(VanilifeConfiguredFeatures.ISLAND_CONIFER_TREE),
+            features.getOrThrow(VanilifeConfiguredFeatures.ISLAND_CONIFER_TREE),
             List.of(
                 CountPlacement.of(4),
                 InSquarePlacement.spread(),
                 HeightmapPlacement.onHeightmap(Heightmap.Types.WORLD_SURFACE_WG),
                 BlockPredicateFilter.forPredicate(
                     BlockPredicate.allOf(
-                        BlockPredicate.matchesBlocks(Direction.DOWN.getUnitVec3i(), Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
+                        BlockPredicate.matchesBlocks(Direction.DOWN, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
                         BlockPredicate.ONLY_IN_AIR_PREDICATE
                     )
                 ),
@@ -96,16 +97,16 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature islandJungleBush(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature islandJungleBush(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(TreeFeatures.JUNGLE_BUSH),
+            features.getOrThrow(TreeFeatures.JUNGLE_BUSH),
             List.of(
                 RarityFilter.onAverageOnceEvery(3),
                 InSquarePlacement.spread(),
                 HeightmapPlacement.onHeightmap(Heightmap.Types.WORLD_SURFACE_WG),
                 BlockPredicateFilter.forPredicate(
                     BlockPredicate.allOf(
-                        BlockPredicate.matchesBlocks(Direction.DOWN.getUnitVec3i(), Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
+                        BlockPredicate.matchesBlocks(Direction.DOWN, Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.ROOTED_DIRT),
                         BlockPredicate.ONLY_IN_AIR_PREDICATE
                     )
                 ),
@@ -115,12 +116,12 @@ public final class VanilifePlacedFeatures {
     }
 
     private static PlacedFeature islandGroundPatch(
-        final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures,
-        final ResourceKey<ConfiguredFeature<?, ?>> configuredFeature,
+        final HolderGetter<Feature> features,
+        final ResourceKey<Feature> featureKey,
         final int count
     ) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(configuredFeature),
+            features.getOrThrow(featureKey),
             List.of(
                 CountPlacement.of(count),
                 InSquarePlacement.spread(),
@@ -131,11 +132,11 @@ public final class VanilifePlacedFeatures {
     }
 
     private static PlacedFeature islandChunkFeature(
-        final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures,
-        final ResourceKey<ConfiguredFeature<?, ?>> configuredFeature
+        final HolderGetter<Feature> features,
+        final ResourceKey<Feature> featureKey
     ) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(configuredFeature),
+            features.getOrThrow(featureKey),
             List.of(
                 CountPlacement.of(1),
                 InSquarePlacement.spread(),
@@ -144,9 +145,9 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature caveIcePillar(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature caveIcePillar(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(VanilifeConfiguredFeatures.CAVE_ICE_PILLAR),
+            features.getOrThrow(VanilifeConfiguredFeatures.CAVE_ICE_PILLAR),
             List.of(
                 CountPlacement.of(18),
                 InSquarePlacement.spread(),
@@ -156,9 +157,9 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature caveIceCluster(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature caveIceCluster(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(VanilifeConfiguredFeatures.CAVE_ICE_CLUSTER),
+            features.getOrThrow(VanilifeConfiguredFeatures.CAVE_ICE_CLUSTER),
             List.of(
                 CountPlacement.of(14),
                 InSquarePlacement.spread(),
@@ -168,9 +169,9 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature caveSnowCover(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature caveSnowCover(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(VanilifeConfiguredFeatures.CAVE_SNOW_COVER),
+            features.getOrThrow(VanilifeConfiguredFeatures.CAVE_SNOW_COVER),
             List.of(
                 CountPlacement.of(96),
                 InSquarePlacement.spread(),
@@ -180,9 +181,9 @@ public final class VanilifePlacedFeatures {
         );
     }
 
-    private static PlacedFeature caveWallFrost(final HolderGetter<ConfiguredFeature<?, ?>> configuredFeatures) {
+    private static PlacedFeature caveWallFrost(final HolderGetter<Feature> features) {
         return new PlacedFeature(
-            configuredFeatures.getOrThrow(VanilifeConfiguredFeatures.CAVE_WALL_FROST),
+            features.getOrThrow(VanilifeConfiguredFeatures.CAVE_WALL_FROST),
             List.of(
                 CountPlacement.of(32),
                 InSquarePlacement.spread(),

@@ -1,43 +1,44 @@
 package net.azisaba.vanilife.server.world.feature;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 
 import java.util.ArrayDeque;
 
-public final class CaveWallFrostFeature extends Feature<CaveWallFrostFeature.Configuration> {
+public record CaveWallFrostFeature(Holder<BlockStateProvider> stateProvider, Holder<BlockStateProvider> edgeStateProvider) implements Feature {
+    public static final MapCodec<CaveWallFrostFeature> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            BlockStateProvider.CODEC.fieldOf("state_provider").forGetter(CaveWallFrostFeature::stateProvider),
+            BlockStateProvider.CODEC.fieldOf("edge_state_provider").forGetter(CaveWallFrostFeature::edgeStateProvider)
+    ).apply(instance, CaveWallFrostFeature::new));
+
     private static final int SEARCH_RADIUS = 7;
     private static final int SEARCH_HEIGHT = 5;
 
-    public CaveWallFrostFeature(final Codec<Configuration> codec) {
-        super(codec);
+    @Override
+    public MapCodec<CaveWallFrostFeature> codec() {
+        return CODEC;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<Configuration> context) {
-        final WorldGenLevel level = context.level();
-        final BlockPos origin = context.origin();
-        final RandomSource random = context.random();
-        final Configuration config = context.config();
-
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
         final int x = origin.getX() + Mth.nextInt(random, -SEARCH_RADIUS, SEARCH_RADIUS);
         final int y = origin.getY() + Mth.nextInt(random, -SEARCH_HEIGHT, SEARCH_HEIGHT);
         final int z = origin.getZ() + Mth.nextInt(random, -SEARCH_RADIUS, SEARCH_RADIUS);
         final BlockPos anchor = new BlockPos(x, y, z);
 
         for (final Direction direction : Direction.Plane.HORIZONTAL) {
-            if (this.tryPlaceSheet(level, random, anchor, direction, config)) {
+            if (this.tryPlaceSheet(level, random, anchor, direction)) {
                 return true;
             }
         }
@@ -48,8 +49,7 @@ public final class CaveWallFrostFeature extends Feature<CaveWallFrostFeature.Con
             final WorldGenLevel level,
             final RandomSource random,
             final BlockPos anchor,
-            final Direction outward,
-            final Configuration config
+            final Direction outward
     ) {
         if (level.isOutsideBuildHeight(anchor)) {
             return false;
@@ -93,8 +93,8 @@ public final class CaveWallFrostFeature extends Feature<CaveWallFrostFeature.Con
             }
 
             final BlockState state = support >= 2 && random.nextFloat() < 0.3F
-                    ? config.edgeStateProvider().getState(random, pos)
-                    : config.stateProvider().getState(random, pos);
+                    ? this.edgeStateProvider.value().getState(level, random, pos)
+                    : this.stateProvider.value().getState(level, random, pos);
             this.setBlock(level, pos, state);
             placed = true;
 
@@ -136,12 +136,5 @@ public final class CaveWallFrostFeature extends Feature<CaveWallFrostFeature.Con
             }
         }
         return support;
-    }
-
-    public record Configuration(BlockStateProvider stateProvider, BlockStateProvider edgeStateProvider) implements FeatureConfiguration {
-        public static final Codec<Configuration> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                BlockStateProvider.CODEC.fieldOf("state_provider").forGetter(Configuration::stateProvider),
-                BlockStateProvider.CODEC.fieldOf("edge_state_provider").forGetter(Configuration::edgeStateProvider)
-        ).apply(instance, Configuration::new));
     }
 }

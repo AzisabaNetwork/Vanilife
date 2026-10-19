@@ -10,7 +10,9 @@ import net.azisaba.vanilife.server.world.islands.river.RiverNetwork;
 import net.azisaba.vanilife.world.IslandPosition;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import net.minecraft.world.level.levelgen.synth.Noise;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
+
 final class IslandTerrainSampler {
     static final double RIVER_BANK_THRESHOLD = 0.015;
 
@@ -21,7 +23,7 @@ final class IslandTerrainSampler {
     private final IslandsGeneratorSettings settings;
     private final Map<Long, IslandNoise> islandNoiseCache = new ConcurrentHashMap<>();
     private final Map<Long, IslandRiverLayout> islandRiverLayoutCache = new ConcurrentHashMap<>();
-    private final Map<Long, NormalNoise> deepOceanNoiseCache = new ConcurrentHashMap<>();
+    private final Map<Long, Noise> deepOceanNoiseCache = new ConcurrentHashMap<>();
 
     IslandTerrainSampler(final IslandsGeneratorSettings settings) {
         this.settings = settings;
@@ -53,7 +55,7 @@ final class IslandTerrainSampler {
             final double safeRadius = obstacle.safeRadius();
             if (distanceSq < safeRadius * safeRadius) {
                 final double distance = Math.sqrt(distanceSq);
-                obstacleReduction = Math.min(obstacleReduction, Mth.smoothstep(Mth.clamp((distance - (safeRadius - 16.0)) / 20.0, 0.0, 1.0)));
+                obstacleReduction = Math.min(obstacleReduction, smoothstep(Mth.clamp((distance - (safeRadius - 16.0)) / 20.0, 0.0, 1.0)));
             }
         }
 
@@ -217,15 +219,19 @@ final class IslandTerrainSampler {
         return this.islandRiverLayoutCache.computeIfAbsent(islandPos.computeSeed(levelSeed), k -> IslandRiverLayout.createDefault(levelSeed, islandPos));
     }
 
-    private NormalNoise getDeepOceanNoise(final long levelSeed) {
+    private Noise getDeepOceanNoise(final long levelSeed) {
         return this.deepOceanNoiseCache.computeIfAbsent(
             levelSeed,
-            seed -> NormalNoise.create(new LegacyRandomSource(seed ^ DEEP_OCEAN_NOISE_SALT), -2, 1.0, 0.55, 0.3)
+            seed -> NormalNoise.createParity(-2, 1.0, 0.55, 0.3).create(new LegacyRandomSource(seed ^ DEEP_OCEAN_NOISE_SALT))
         );
     }
 
-    private static double sample2d(final NormalNoise noise, final double x, final double z, final double scale) {
-        return noise.getValue(x / scale, 0.0, z / scale);
+    private static double sample2d(final Noise noise, final double x, final double z, final double scale) {
+        return noise.get(x / scale, z / scale);
+    }
+
+    private static double smoothstep(final double d) {
+        return d * d * (3.0 - 2.0 * d);
     }
 
     record TerrainSample(

@@ -1,5 +1,11 @@
+[![Version](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fartifactory.papermc.io%2Fartifactory%2Funiverse%2Fdev%2Ffolia%2Ffolia-api%2Fmaven-metadata.xml&strategy=highestVersion&filter=26.3.*&label=version&color=%23344ceb
+)](https://papermc.io/downloads/folia)
+[![Folia Build Status](https://img.shields.io/github/actions/workflow/status/PaperMC/Folia/build.yml?branch=ver/26.3.x)](https://github.com/PaperMC/Folia/actions)
+[![Discord](https://img.shields.io/discord/289587909051416579.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/papermc)
+===========
+
 <div align=center>
-    <img src="./folia.png">
+    <img src="./folia.png" alt="folia logo">
     <br /><br />
     <p>Fork of <a href="https://github.com/PaperMC/Paper">Paper</a> which adds regionised multithreading to the dedicated server.</p>
 </div>
@@ -216,7 +222,7 @@ even though there is no main thread anymore.
 <dependency>
     <groupId>dev.folia</groupId>
     <artifactId>folia-api</artifactId>
-    <version>1.20.1-R0.1-SNAPSHOT</version>
+    <version>[26.3.build,)</version>
     <scope>provided</scope>
 </dependency>
  ```
@@ -229,3 +235,5 @@ found in `./patches` and its subdirectories except when noted otherwise.
 The fork is based off of PaperMC's fork example found [here](https://github.com/PaperMC/paperweight-examples).
 As such, it contains modifications to it in this project, please see the repository for license information
 of modified files.
+
+[![CI powered by namespace badge](https://papermc.io/assets/misc/namespace-oss-badge.svg?project=folia)](https://namespace.so/github-actions/?utm_source=oss&utm_campaign=papermc)

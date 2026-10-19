@@ -75,7 +75,11 @@ public final class IslandSurfaceBlender {
     private double computeBeachMixProgress(final double signedDistance, final double beachBand, final double mixedBandWidth) {
         final double inlandDistance = Math.max(0.0, -signedDistance);
         final double bandStart = Math.max(0.0, beachBand - mixedBandWidth * 0.5);
-        return Mth.smoothstep(Mth.clamp((inlandDistance - bandStart) / mixedBandWidth, 0.0, 1.0));
+        return smoothstep(Mth.clamp((inlandDistance - bandStart) / mixedBandWidth, 0.0, 1.0));
+    }
+
+    private static double smoothstep(final double x) {
+        return x * x * (3.0 - 2.0 * x);
     }
 
     private boolean shouldPlaceSandOnSurface(

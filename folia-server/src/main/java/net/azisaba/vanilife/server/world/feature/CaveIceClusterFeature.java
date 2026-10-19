@@ -1,38 +1,40 @@
 package net.azisaba.vanilife.server.world.feature;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.Configuration> {
+public record CaveIceClusterFeature(Holder<BlockStateProvider> stateProvider, Holder<BlockStateProvider> topStateProvider) implements Feature {
+    public static final MapCodec<CaveIceClusterFeature> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            BlockStateProvider.CODEC.fieldOf("state_provider").forGetter(CaveIceClusterFeature::stateProvider),
+            BlockStateProvider.CODEC.fieldOf("top_state_provider").forGetter(CaveIceClusterFeature::topStateProvider)
+    ).apply(instance, CaveIceClusterFeature::new));
+
     private static final int FLOOR_SEARCH_RANGE = 10;
     private static final int MIN_RADIUS = 2;
     private static final int MAX_RADIUS = 5;
     private static final int MIN_HEIGHT = 4;
     private static final int MAX_HEIGHT = 8;
 
-    public CaveIceClusterFeature(final Codec<Configuration> codec) {
-        super(codec);
+    @Override
+    public MapCodec<CaveIceClusterFeature> codec() {
+        return CODEC;
     }
 
     @Override
-    public boolean place(final FeaturePlaceContext<Configuration> context) {
-        final WorldGenLevel level = context.level();
-        final BlockPos origin = context.origin();
-        final RandomSource random = context.random();
-        final Configuration config = context.config();
+    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
         final Integer floorY = this.findFloor(level, origin.getX(), origin.getY(), origin.getZ());
         if (floorY == null) {
             return false;
@@ -86,7 +88,7 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
                         continue;
                     }
 
-                    this.setBlock(level, pos, this.sampleIce(random, pos, iy, height, config));
+                    this.setBlock(level, pos, this.sampleIce(level, random, pos, iy, height));
                     placed = true;
                 }
             }
@@ -98,7 +100,7 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
             final int dz = Mth.nextInt(random, -Math.max(1, radiusZ / 2), Math.max(1, radiusZ / 2));
             final int startY = this.findTopSurface(level, center.getX() + dx, center.getY(), center.getZ() + dz, height + 3);
             if (startY >= 0) {
-                placed |= this.placeSpire(level, random, new BlockPos(center.getX() + dx, startY + 1, center.getZ() + dz), random.nextInt(1, 4), config);
+                placed |= this.placeSpire(level, random, new BlockPos(center.getX() + dx, startY + 1, center.getZ() + dz), random.nextInt(1, 4));
             }
         }
 
@@ -242,8 +244,7 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
             final WorldGenLevel level,
             final RandomSource random,
             final BlockPos start,
-            final int height,
-            final Configuration config
+            final int height
     ) {
         boolean placed = false;
         for (int i = 0; i < height; i++) {
@@ -256,7 +257,7 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
                 break;
             }
 
-            this.setBlock(level, pos, this.sampleIce(random, pos, i, height, config));
+            this.setBlock(level, pos, this.sampleIce(level, random, pos, i, height));
             placed = true;
         }
         return placed;
@@ -278,11 +279,11 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
         return top;
     }
 
-    private BlockState sampleIce(final RandomSource random, final BlockPos pos, final int dy, final int height, final Configuration config) {
+    private BlockState sampleIce(final WorldGenLevel level, final RandomSource random, final BlockPos pos, final int dy, final int height) {
         if (dy == height && random.nextFloat() < 0.55F) {
-            return config.topStateProvider().getState(random, pos);
+            return this.topStateProvider.value().getState(level, random, pos);
         }
-        return config.stateProvider().getState(random, pos);
+        return this.stateProvider.value().getState(level, random, pos);
     }
 
     private Integer findFloor(final WorldGenLevel level, final int x, final int startY, final int z) {
@@ -304,13 +305,6 @@ public final class CaveIceClusterFeature extends Feature<CaveIceClusterFeature.C
 
     private boolean canReplace(final BlockState state) {
         return state.isAir() || state.is(Blocks.WATER) || state.is(Blocks.SNOW);
-    }
-
-    public record Configuration(BlockStateProvider stateProvider, BlockStateProvider topStateProvider) implements FeatureConfiguration {
-        public static final Codec<Configuration> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                BlockStateProvider.CODEC.fieldOf("state_provider").forGetter(Configuration::stateProvider),
-                BlockStateProvider.CODEC.fieldOf("top_state_provider").forGetter(Configuration::topStateProvider)
-        ).apply(instance, Configuration::new));
     }
 
     private record Lobe(float offsetX, float offsetY, float offsetZ, float radiusX, float radiusY, float radiusZ) {

@@ -5,7 +5,7 @@ Subject: [PATCH] Server item registry
 
 
 diff --git a/src/generated/java/io/papermc/paper/registry/keys/BiomeKeys.java b/src/generated/java/io/papermc/paper/registry/keys/BiomeKeys.java
-index 983878bb6832ee22b49da23933903206e347d8f3..eb2432079d59f8504bb85abd323d2c1bf1dcb351 100644
+index b391e23ff094be1f3ab47449d852679e29e93615..7584df8ac1a7f5fe57f325bcd2abf72f1b10cecb 100644
 --- a/src/generated/java/io/papermc/paper/registry/keys/BiomeKeys.java
 +++ b/src/generated/java/io/papermc/paper/registry/keys/BiomeKeys.java
 @@ -5,6 +5,9 @@ import static net.kyori.adventure.key.Key.key;
@@ -18,7 +18,7 @@ index 983878bb6832ee22b49da23933903206e347d8f3..eb2432079d59f8504bb85abd323d2c1b
  import net.kyori.adventure.key.Key;
  import org.bukkit.block.Biome;
  import org.jspecify.annotations.NullMarked;
-@@ -480,6 +483,9 @@ public final class BiomeKeys {
+@@ -494,6 +497,9 @@ public final class BiomeKeys {
       */
      public static final TypedKey<Biome> WOODED_BADLANDS = create(key("wooded_badlands"));
  
@@ -65,12 +65,12 @@ index b409620d9724e064fd12b1a5456574e3e3aad025..36f1834b0077e5facdc5b3c06819635d
   * <p>
   * Your bootstrap class will be on the same classloader as your JavaPlugin.
 diff --git a/src/main/java/io/papermc/paper/registry/RegistryKey.java b/src/main/java/io/papermc/paper/registry/RegistryKey.java
-index dcee3d88f5b77cdd5c7cbc07f73f54cc548d2f94..ad4015760c5d7dea86171a2ee246a91fac2da04e 100644
+index 832a93327397311156ba764bdba161f875dcdb9d..e8d83d9bcad58bd18235d8c81e3e70b8f6b32684 100644
 --- a/src/main/java/io/papermc/paper/registry/RegistryKey.java
 +++ b/src/main/java/io/papermc/paper/registry/RegistryKey.java
-@@ -3,6 +3,11 @@ package io.papermc.paper.registry;
- import io.papermc.paper.datacomponent.DataComponentType;
+@@ -5,6 +5,11 @@ import io.papermc.paper.datacomponent.DataComponentType;
  import io.papermc.paper.dialog.Dialog;
+ import io.papermc.paper.entity.poi.PoiType;
  import io.papermc.paper.registry.tag.TagKey;
 +import net.azisaba.vanilife.Vanilife;
 +import net.azisaba.vanilife.annotations.Modified;
@@ -80,7 +80,7 @@ index dcee3d88f5b77cdd5c7cbc07f73f54cc548d2f94..ad4015760c5d7dea86171a2ee246a91f
  import net.kyori.adventure.key.Key;
  import net.kyori.adventure.key.KeyPattern;
  import net.kyori.adventure.key.Keyed;
-@@ -241,6 +246,10 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
+@@ -279,6 +284,10 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
      RegistryKey<PotionType> POTION = create("potion");
      RegistryKey<MemoryKey<?>> MEMORY_MODULE_TYPE = create("memory_module_type");
  
@@ -132,10 +132,10 @@ index dd9af46618513880f1988e1b955b19a18f8e7480..c4e5fb72c49086c0dadde8f0f59754fd
   * @param <T> registry entry type
   * @param <B> registry entry builder type
 diff --git a/src/main/java/io/papermc/paper/registry/event/RegistryEvents.java b/src/main/java/io/papermc/paper/registry/event/RegistryEvents.java
-index 6ae47dac3496e2abf78b13ba1ae5dd0f3b2dd158..72bd14f2e30a25f1d86e4c09fcd07e755c095e11 100644
+index ed59510b3f5d2280a0b0327e8b117f994fa35684..6b7152635baa3bee14b2dbb8e4d8d5db330fb5cc 100644
 --- a/src/main/java/io/papermc/paper/registry/event/RegistryEvents.java
 +++ b/src/main/java/io/papermc/paper/registry/event/RegistryEvents.java
-@@ -17,6 +17,10 @@ import io.papermc.paper.registry.data.PigVariantRegistryEntry;
+@@ -22,6 +22,10 @@ import io.papermc.paper.registry.data.TrimPatternRegistryEntry;
  import io.papermc.paper.registry.data.WolfVariantRegistryEntry;
  import io.papermc.paper.registry.data.ZombieNautilusVariantRegistryEntry;
  import io.papermc.paper.registry.data.dialog.DialogRegistryEntry;
@@ -146,8 +146,8 @@ index 6ae47dac3496e2abf78b13ba1ae5dd0f3b2dd158..72bd14f2e30a25f1d86e4c09fcd07e75
  import org.bukkit.Art;
  import org.bukkit.GameEvent;
  import org.bukkit.JukeboxSong;
-@@ -57,6 +61,8 @@ public final class RegistryEvents {
-     public static final RegistryEventProvider<ZombieNautilus.Variant, ZombieNautilusVariantRegistryEntry.Builder> ZOMBIE_NAUTILUS_VARIANT = create(RegistryKey.ZOMBIE_NAUTILUS_VARIANT);
+@@ -69,6 +73,8 @@ public final class RegistryEvents {
+     public static final RegistryEventProvider<SulfurCube.Archetype, SulfurCubeArchetypeRegistryEntry.Builder> SULFUR_CUBE_ARCHETYPE = create(RegistryKey.SULFUR_CUBE_ARCHETYPE);
      public static final RegistryEventProvider<Dialog, DialogRegistryEntry.Builder> DIALOG = create(RegistryKey.DIALOG);
      // End generate - RegistryEvents
 +    @Modified(Op.ADD_FIELD)
@@ -156,7 +156,7 @@ index 6ae47dac3496e2abf78b13ba1ae5dd0f3b2dd158..72bd14f2e30a25f1d86e4c09fcd07e75
      private RegistryEvents() {
      }
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 72fd32341a1efbe48997c951d9a00ca721dc4b00..b9d34c0b80a5d0c26f43e4959c3a8256a854585a 100644
+index d493ee60c76ba926ccb2aa4cddb16d4da13aa426..e8104fec9acc0eb6f8b029d5b57a4a68f38634a0 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
 @@ -15,9 +15,6 @@ import java.util.UUID;
@@ -169,9 +169,9 @@ index 72fd32341a1efbe48997c951d9a00ca721dc4b00..b9d34c0b80a5d0c26f43e4959c3a8256
  import net.kyori.adventure.text.Component;
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
-@@ -904,11 +901,6 @@ public final class Bukkit {
+@@ -907,11 +904,6 @@ public final class Bukkit {
+         return server.getWorld(worldKey);
      }
-     // Paper end
  
 -    @Modified(Op.ADD_METHOD)
 -    public static World getIslandsWorld() {
@@ -277,10 +277,10 @@ index f334296d103415b8435a3e046e665d11a723a92d..1e68b590479fa7f737cdf15461c61374
 +    RESOURCE_END_WORLD_SURFACE_WG,
  }
 diff --git a/src/main/java/org/bukkit/block/Biome.java b/src/main/java/org/bukkit/block/Biome.java
-index 572f917374f871b0feab3fffc1a3c7b9e6fb0bfc..83876fbd9ecfcb054a6bebf8cef204db91d47ad8 100644
+index dd7a856d0c9a0c9c33e3c7116023fdf8072a6935..0c12a1f1e0cd1cf63b1a35228d3d2f0611c71877 100644
 --- a/src/main/java/org/bukkit/block/Biome.java
 +++ b/src/main/java/org/bukkit/block/Biome.java
-@@ -5,7 +5,10 @@ import com.google.common.collect.Lists;
+@@ -4,7 +4,10 @@ import com.google.common.base.Preconditions;
  import io.papermc.paper.InternalAPIBridge;
  import io.papermc.paper.registry.RegistryAccess;
  import io.papermc.paper.registry.RegistryKey;
@@ -288,10 +288,10 @@ index 572f917374f871b0feab3fffc1a3c7b9e6fb0bfc..83876fbd9ecfcb054a6bebf8cef204db
  import java.util.Locale;
 +import net.azisaba.vanilife.annotations.Modified;
 +import net.azisaba.vanilife.annotations.Op;
+ import net.kyori.adventure.key.Key;
+ import net.kyori.adventure.key.KeyPattern;
  import org.bukkit.Bukkit;
- import org.bukkit.FeatureFlag;
- import org.bukkit.Keyed;
-@@ -156,6 +159,9 @@ public interface Biome extends OldEnum<Biome>, Keyed, net.kyori.adventure.transl
+@@ -161,6 +164,9 @@ public interface Biome extends OldEnum<Biome>, Keyed, net.kyori.adventure.transl
      Biome WOODED_BADLANDS = getBiome("wooded_badlands");
      // End generate - Biome
  
@@ -302,7 +302,7 @@ index 572f917374f871b0feab3fffc1a3c7b9e6fb0bfc..83876fbd9ecfcb054a6bebf8cef204db
       * Represents a custom Biome
       *
 diff --git a/src/main/java/org/bukkit/block/Block.java b/src/main/java/org/bukkit/block/Block.java
-index fbee4ab2faaeba8d798aaba2e1837315ed56a184..e57825a00a3352e0d098d12d55ef07dfe35ca623 100644
+index 5c75b3d049f22573c4bc85ed06fc7f1efa31b361..b89873bbff28d867ef114ba1fe9da5cc13090ac9 100644
 --- a/src/main/java/org/bukkit/block/Block.java
 +++ b/src/main/java/org/bukkit/block/Block.java
 @@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
@@ -314,7 +314,7 @@ index fbee4ab2faaeba8d798aaba2e1837315ed56a184..e57825a00a3352e0d098d12d55ef07df
   * (i.e. lighting and power) may not be able to be safely accessed during world
   * generation when used in cases like BlockPhysicsEvent!!!!
   */
-@@ -714,11 +714,11 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
+@@ -719,11 +719,11 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
      /**
       * Checks if this block is passable.
       * <p>
@@ -329,10 +329,10 @@ index fbee4ab2faaeba8d798aaba2e1837315ed56a184..e57825a00a3352e0d098d12d55ef07df
       *
       * @return <code>true</code> if passable
 diff --git a/src/main/java/org/bukkit/command/defaults/VersionCommand.java b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
-index 29756f4ea6c6abf3b35106ee05a4f9ffd404a6af..5f4d141165c45ba9f3954aaff8209354c09f31b9 100644
+index f4dd936d79995014651326b41af706bae179a5a1..2ff4282d74865c7d65dd17e9faef215c2e0f9daf 100644
 --- a/src/main/java/org/bukkit/command/defaults/VersionCommand.java
 +++ b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
-@@ -220,10 +220,10 @@ public class VersionCommand extends BukkitCommand {
+@@ -221,10 +221,10 @@ public class VersionCommand extends BukkitCommand {
          setVersionMessage(getVersionFetcher().getVersionMessage(version));
          /*
          if (version == null) version = "Custom";
@@ -347,7 +347,7 @@ index 29756f4ea6c6abf3b35106ee05a4f9ffd404a6af..5f4d141165c45ba9f3954aaff8209354
              if (cbVersions == -1 || spigotVersions == -1) {
                  setVersionMessage("Error obtaining version information");
              } else {
-@@ -234,8 +234,8 @@ public class VersionCommand extends BukkitCommand {
+@@ -235,8 +235,8 @@ public class VersionCommand extends BukkitCommand {
                  }
              }
  
@@ -380,7 +380,7 @@ index 2151e3bac040b0dd47c67ffe3a9de6dc45e9d62c..c1046afcd37805ed0853ecb0ed6f6adb
      @NotNull
      public Set<ComplexEntityPart> getParts();
 diff --git a/src/main/java/org/bukkit/inventory/InventoryView.java b/src/main/java/org/bukkit/inventory/InventoryView.java
-index 5c5906421d5147c2d12cff9ad837274f086bbad7..9047271aa266272eeade7c3c81a615e920425e5d 100644
+index 76e869d41c7cf44f62d3bb9007ceda15c105ea4b..17c0538f930ceede674c346f75920ebdbf9f2029 100644
 --- a/src/main/java/org/bukkit/inventory/InventoryView.java
 +++ b/src/main/java/org/bukkit/inventory/InventoryView.java
 @@ -1,5 +1,8 @@
@@ -392,9 +392,9 @@ index 5c5906421d5147c2d12cff9ad837274f086bbad7..9047271aa266272eeade7c3c81a615e9
  import org.bukkit.entity.HumanEntity;
  import org.bukkit.event.inventory.InventoryType;
  import org.jetbrains.annotations.ApiStatus;
-@@ -334,4 +337,12 @@ public interface InventoryView {
+@@ -333,4 +336,12 @@ public interface InventoryView {
+      * @return the menu type of the inventory view or null if not applicable
       */
-     @ApiStatus.Experimental
      @Nullable MenuType getMenuType();
 +
 +    @Modified(Op.ADD_METHOD)
@@ -406,16 +406,15 @@ index 5c5906421d5147c2d12cff9ad837274f086bbad7..9047271aa266272eeade7c3c81a615e9
 +    int getStateId();
  }
 diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
-index f20f072b0978b3ef4b3f36c952d469e0d8d5cd22..c5c2c92eb32b3457c72d89b02c6a5aa827c8bdb4 100644
+index a8a817fa6186f99107ccfd4d7a83f891fa7e1e17..dc842a32d5d52c2a62f042cbcdd1b94c6b91cab9 100644
 --- a/src/main/java/org/bukkit/inventory/ItemStack.java
 +++ b/src/main/java/org/bukkit/inventory/ItemStack.java
-@@ -2,14 +2,18 @@ package org.bukkit.inventory;
- 
+@@ -3,11 +3,17 @@ package org.bukkit.inventory;
  import com.google.common.base.Preconditions;
+ import io.papermc.paper.InternalAPIBridge;
  import io.papermc.paper.datacomponent.DataComponentHolder;
 +import io.papermc.paper.registry.RegistryAccess;
  import io.papermc.paper.registry.RegistryKey;
--import java.util.LinkedHashMap;
 +import io.papermc.paper.registry.TypedKey;
  import java.util.Locale;
  import java.util.Map;
@@ -426,11 +425,9 @@ index f20f072b0978b3ef4b3f36c952d469e0d8d5cd22..c5c2c92eb32b3457c72d89b02c6a5aa8
 +import net.azisaba.vanilife.annotations.VanilifoliaApi;
 +import net.azisaba.vanilife.item.ServerItem;
  import net.kyori.adventure.text.Component;
--import net.kyori.adventure.text.event.HoverEvent;
  import org.bukkit.Bukkit;
  import org.bukkit.Material;
- import org.bukkit.NamespacedKey;
-@@ -22,6 +26,7 @@ import org.bukkit.inventory.meta.Damageable;
+@@ -21,6 +27,7 @@ import org.bukkit.inventory.meta.Damageable;
  import org.bukkit.inventory.meta.ItemMeta;
  import org.bukkit.material.MaterialData;
  import org.bukkit.persistence.PersistentDataContainer;
@@ -438,7 +435,7 @@ index f20f072b0978b3ef4b3f36c952d469e0d8d5cd22..c5c2c92eb32b3457c72d89b02c6a5aa8
  import org.jetbrains.annotations.NotNull;
  import org.jetbrains.annotations.Nullable;
  
-@@ -66,6 +71,40 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+@@ -65,6 +72,40 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      }
      // Paper end
  
@@ -479,7 +476,7 @@ index f20f072b0978b3ef4b3f36c952d469e0d8d5cd22..c5c2c92eb32b3457c72d89b02c6a5aa8
      // Paper start - pdc
      /**
       * @see #editPersistentDataContainer(Consumer)
-@@ -233,6 +272,30 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+@@ -232,6 +273,30 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
      }
      // Paper end
  

@@ -117,7 +117,10 @@ public interface ServerItemRegistryEntry extends DataComponentView, Translatable
 
         @Contract(value = "-> this", mutates = "this")
         default Builder fireResistant() {
-            return this.withComponent(DataComponentTypes.DAMAGE_RESISTANT, DamageResistant.damageResistant(DamageTypeTagKeys.IS_FIRE));
+            return this.withComponent(
+                DataComponentTypes.DAMAGE_RESISTANT,
+                DamageResistant.damageResistant(io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(io.papermc.paper.registry.RegistryKey.DAMAGE_TYPE).getTag(DamageTypeTagKeys.IS_FIRE))
+            );
         }
 
         @Contract(value = "_ -> this", mutates = "this")

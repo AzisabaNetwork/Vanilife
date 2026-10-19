@@ -5,6 +5,7 @@ import net.azisaba.vanilife.world.IslandPosition;
 import net.azisaba.vanilife.world.IslandsWorld;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import net.minecraft.world.level.levelgen.synth.Noise;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 import io.papermc.paper.math.BlockPosition;
 public final class IslandNoise {
@@ -31,12 +32,12 @@ public final class IslandNoise {
 
     private final IslandNoiseSettings settings;
 
-    private final NormalNoise coastNoise;
-    private final NormalNoise cornerNoise;
-    private final NormalNoise mountainMassNoise;
-    private final NormalNoise ridgeNoise;
-    private final NormalNoise cliffNoise;
-    private final NormalNoise landDetailNoise;
+    private final Noise coastNoise;
+    private final Noise cornerNoise;
+    private final Noise mountainMassNoise;
+    private final Noise ridgeNoise;
+    private final Noise cliffNoise;
+    private final Noise landDetailNoise;
 
     public IslandNoise(final IslandPosition position, final long levelSeed, final int width, final int height, final IslandNoiseSettings noiseSettings) {
         final long seed = position.computeSeed(levelSeed);
@@ -121,8 +122,8 @@ public final class IslandNoise {
             0.25
         );
         final double radialCore = 1.0 - Mth.clamp(superellipseDistance, 0.0, 1.0);
-        final double shoreLift = Mth.smoothstep(progress);
-        final double edgeLift = Mth.smoothstep(shorelineTransition) * 0.1;
+        final double shoreLift = smoothstep(progress);
+        final double edgeLift = smoothstep(shorelineTransition) * 0.1;
         final double mountainProgress = Math.pow(radialCore, this.settings.inlandRiseExponent()) * shoreLift;
         final double domeProgress = Math.sqrt(radialCore) * shoreLift;
 
@@ -140,12 +141,12 @@ public final class IslandNoise {
         );
         final double cliffBandDistance = Math.abs(progress - this.settings.cliffBandCenter());
         final double cliffBand = Mth.clamp(1.0 - (cliffBandDistance / this.settings.cliffBandWidth()), 0.0, 1.0);
-        final double cliffMask = Mth.smoothstep(cliffBand);
-        final double cliffStep = Mth.smoothstep(Mth.clamp((cliffNoise + 1.0) * 0.5, 0.0, 1.0));
+        final double cliffMask = smoothstep(cliffBand);
+        final double cliffStep = smoothstep(Mth.clamp((cliffNoise + 1.0) * 0.5, 0.0, 1.0));
         final double cliffLift = cliffMask * cliffStep * directionalAlignment * this.settings.cliffStrength();
         final double peakDetailFade = 1.0 - domeProgress * 0.85;
         final double foothillBand = Mth.clamp(1.0 - (Math.abs(progress - 0.55) / 0.28), 0.0, 1.0);
-        final double foothillLift = Mth.smoothstep(foothillBand)
+        final double foothillLift = smoothstep(foothillBand)
             * Mth.clamp((foothillNoise + 1.0) * 0.5, 0.0, 1.0)
             * this.settings.foothillAmplitude();
 
@@ -179,7 +180,7 @@ public final class IslandNoise {
         final double tx = Mth.clamp((ax - sx) / this.settings.cornerRadius(), 0.0, 1.0);
         final double tz = Mth.clamp((az - sz) / this.settings.cornerRadius(), 0.0, 1.0);
 
-        return Mth.smoothstep(tx) * Mth.smoothstep(tz);
+        return smoothstep(tx) * smoothstep(tz);
     }
 
     private double sdfRoundedRect(final double x, final double z, final double r) {
@@ -200,21 +201,25 @@ public final class IslandNoise {
         final double dz = z - this.spawnBlockOffsetZ;
         final double distance = Math.sqrt(dx * dx + dz * dz);
         final double progress = 1.0 - Mth.clamp(distance / radius, 0.0, 1.0);
-        return Mth.smoothstep(progress);
+        return smoothstep(progress);
     }
 
-    private static NormalNoise createNoise(final long seed, final int firstOctave, final double amplitude, final double... otherAmplitudes) {
+    private static Noise createNoise(final long seed, final int firstOctave, final double amplitude, final double... otherAmplitudes) {
         final double[] amplitudes = new double[otherAmplitudes.length + 1];
         amplitudes[0] = amplitude;
         System.arraycopy(otherAmplitudes, 0, amplitudes, 1, otherAmplitudes.length);
-        return NormalNoise.create(new LegacyRandomSource(seed), firstOctave, amplitudes);
+        return NormalNoise.createParity(firstOctave, amplitudes).create(new LegacyRandomSource(seed));
     }
 
     public double sample2d(final double x, final double z, final double scale) {
         return sample2d(this.landDetailNoise, x, z, scale);
     }
 
-    private static double sample2d(final NormalNoise noise, final double x, final double z, final double scale) {
-        return noise.getValue(x / scale, 0.0, z / scale);
+    private static double sample2d(final Noise noise, final double x, final double z, final double scale) {
+        return noise.get(x / scale, z / scale);
+    }
+
+    private static double smoothstep(final double d) {
+        return d * d * (3.0 - 2.0 * d);
     }
 }

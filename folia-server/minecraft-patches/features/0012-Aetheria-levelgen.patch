@@ -1,0 +1,925 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: tksimeji <tksimeji@outlook.com>
+Date: Tue, 17 Feb 2026 13:06:34 +0900
+Subject: [PATCH] Aetheria levelgen
+
+
+diff --git a/net/minecraft/resources/Identifier.java b/net/minecraft/resources/Identifier.java
+index f961326218d56f1455df8d3b7b6079e2126fb8ed..f10f5f7ecac00ee1df5d714fccf560e072170a3d 100644
+--- a/net/minecraft/resources/Identifier.java
++++ b/net/minecraft/resources/Identifier.java
+@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBuf;
+ import java.nio.file.Path;
+ import java.util.Locale;
+ import java.util.function.UnaryOperator;
++
+ import net.minecraft.IdentifierException;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.codec.ByteBufCodecs;
+diff --git a/net/minecraft/resources/RegistryDataLoader.java b/net/minecraft/resources/RegistryDataLoader.java
+index 1eaceec3d89fada314668d58177cc1d57c0e6d9a..ecfac586c76e856634068066120e3002923de0b0 100644
+--- a/net/minecraft/resources/RegistryDataLoader.java
++++ b/net/minecraft/resources/RegistryDataLoader.java
+@@ -18,6 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.Executor;
+ import java.util.function.BiConsumer;
+ import java.util.stream.Collectors;
++
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.VanilifeBiomes;
++import net.azisaba.vanilife.server.VanilifeConfiguredFeatures;
++import net.azisaba.vanilife.server.VanilifeDimensionTypes;
++import net.azisaba.vanilife.server.VanilifeLevelStems;
++import net.azisaba.vanilife.server.VanilifePlacedFeatures;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -240,6 +248,25 @@ public class RegistryDataLoader {
+                         .map(r -> loaderFactory.create((RegistryDataLoader.RegistryData<?>)r, loadingErrors))
+                         .collect(Collectors.toUnmodifiableList());
+                     RegistryOps.RegistryInfoLookup contextAndNewRegistries = createContext(contextRegistries, loadTasks);
++
++                    // Vanilife start - Register Vanilife objects in data-driven registries
++                    loadTasks.forEach(task -> {
++                        final WritableRegistry<?> registry = task.registry;
++
++                        if (registry.key().equals(Registries.BIOME)) {
++                            VanilifeBiomes.bootstrap((WritableRegistry<Biome>) registry, contextAndNewRegistries);
++                        } else if (registry.key().equals(Registries.CONFIGURED_FEATURE)) {
++                            VanilifeConfiguredFeatures.bootstrap((WritableRegistry<net.minecraft.world.level.levelgen.feature.ConfiguredFeature<?, ?>>) registry, contextAndNewRegistries);
++                        } else if (registry.key().equals(Registries.PLACED_FEATURE)) {
++                            VanilifePlacedFeatures.bootstrap((WritableRegistry<PlacedFeature>) registry, contextAndNewRegistries);
++                        } else if (registry.key().equals(Registries.DIMENSION_TYPE)) {
++                            VanilifeDimensionTypes.bootstrap((WritableRegistry<DimensionType>) registry, contextAndNewRegistries);
++                        } else if (registry.key().equals(Registries.LEVEL_STEM)) {
++                            VanilifeLevelStems.bootstrap((WritableRegistry<LevelStem>) registry, contextAndNewRegistries);
++                        }
++                    });
++                    // Vanilife end - Register Vanilife objects in data-driven registries
++
+                     int taskCount = loadTasks.size();
+                     CompletableFuture<?>[] loadCompletions = new CompletableFuture[taskCount];
+ 
+diff --git a/net/minecraft/world/level/biome/BiomeManager.java b/net/minecraft/world/level/biome/BiomeManager.java
+index 65ac39fd0e481b83cb9fad00b6482051dce20759..bbc691956a00fcd3284b8775a863e3dcd4b37120 100644
+--- a/net/minecraft/world/level/biome/BiomeManager.java
++++ b/net/minecraft/world/level/biome/BiomeManager.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.biome;
+ 
+ import com.google.common.hash.Hashing;
++import net.azisaba.vanilife.server.world.resource.ResourceLayer;
++import net.azisaba.vanilife.server.world.resource.ResourceLayout;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.QuartPos;
+@@ -28,6 +30,16 @@ public class BiomeManager {
+         return new BiomeManager(biomeSource, this.biomeZoomSeed);
+     }
+ 
++    // Vanilife start - Remap biome sampling Y by layer
++    public BiomeManager withLayeredSource(final ResourceLayout layout, final ResourceLayer.Type type) {
++        return this.withDifferentSource((quartX, quartY, quartZ) -> {
++            final int layerY = QuartPos.toBlock(quartY);
++            final int blockY = layout.toBlockY(type, layerY);
++            return this.getNoiseBiomeAtQuart(quartX, QuartPos.fromBlock(blockY), quartZ);
++        });
++    }
++    // Vanilife end - Remap biome sampling Y by layer
++
+     public Holder<Biome> getBiome(final BlockPos pos) {
+         return this.getBiome(pos.getX(), pos.getY(), pos.getZ());
+     }
+diff --git a/net/minecraft/world/level/biome/TheEndBiomeSource.java b/net/minecraft/world/level/biome/TheEndBiomeSource.java
+index 959f791d5007b39ddf2dfa3603e48d52b9e41594..b05cb8837f2112d1f60e98fbbd7e6a81210092f3 100644
+--- a/net/minecraft/world/level/biome/TheEndBiomeSource.java
++++ b/net/minecraft/world/level/biome/TheEndBiomeSource.java
+@@ -3,6 +3,9 @@ package net.minecraft.world.level.biome;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.stream.Stream;
++
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.QuartPos;
+@@ -36,7 +39,8 @@ public class TheEndBiomeSource extends BiomeSource {
+         );
+     }
+ 
+-    private TheEndBiomeSource(
++    @Modified(Op.MAKE_PUBLIC)
++    public TheEndBiomeSource(
+         final Holder<Biome> end, final Holder<Biome> highlands, final Holder<Biome> midlands, final Holder<Biome> islands, final Holder<Biome> barrens
+     ) {
+         this.end = end;
+diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
+index a27c82876e6e343f1ffc795520f50dcc2d381a94..f7b93e721e8072775ae9922e595bff7190a5d476 100644
+--- a/net/minecraft/world/level/chunk/ChunkGenerator.java
++++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
+@@ -9,19 +9,9 @@ import it.unimi.dsi.fastutil.ints.IntSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+-import java.util.ArrayList;
+-import java.util.Arrays;
+-import java.util.Collections;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.Optional;
+-import java.util.Set;
+-import java.util.Map.Entry;
+-import java.util.concurrent.CompletableFuture;
+-import java.util.function.Function;
+-import java.util.function.Predicate;
+-import java.util.function.Supplier;
+-import java.util.stream.Collectors;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -40,7 +30,6 @@ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.WorldGenRegion;
+-import net.minecraft.util.Util;
+ import net.minecraft.util.random.WeightedList;
+ import net.minecraft.world.attribute.EnvironmentAttributes;
+ import net.minecraft.world.entity.MobCategory;
+@@ -60,25 +49,14 @@ import net.minecraft.world.level.biome.Climate;
+ import net.minecraft.world.level.biome.FeatureSorter;
+ import net.minecraft.world.level.biome.MobSpawnSettings;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+-import net.minecraft.world.level.levelgen.GenerationStep;
+-import net.minecraft.world.level.levelgen.Heightmap;
+-import net.minecraft.world.level.levelgen.LegacyRandomSource;
+-import net.minecraft.world.level.levelgen.RandomState;
+-import net.minecraft.world.level.levelgen.RandomSupport;
+-import net.minecraft.world.level.levelgen.WorldgenRandom;
+-import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
++import net.minecraft.world.level.levelgen.*;
+ import net.minecraft.world.level.levelgen.blending.Blender;
+ import net.minecraft.world.level.levelgen.densityfunction.DensityBufferPool;
+ import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+ import net.minecraft.world.level.levelgen.feature.FeatureCountTracker;
+ import net.minecraft.world.level.levelgen.placement.FeaturePlacer;
+ import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+-import net.minecraft.world.level.levelgen.structure.BoundingBox;
+-import net.minecraft.world.level.levelgen.structure.Structure;
+-import net.minecraft.world.level.levelgen.structure.StructureCheckResult;
+-import net.minecraft.world.level.levelgen.structure.StructureSet;
+-import net.minecraft.world.level.levelgen.structure.StructureSpawnOverride;
+-import net.minecraft.world.level.levelgen.structure.StructureStart;
++import net.minecraft.world.level.levelgen.structure.*;
+ import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
+ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
+@@ -86,6 +64,14 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
+ import org.apache.commons.lang3.mutable.MutableBoolean;
+ import org.jspecify.annotations.Nullable;
+ 
++import java.util.*;
++import java.util.Map.Entry;
++import java.util.concurrent.CompletableFuture;
++import java.util.function.Function;
++import java.util.function.Predicate;
++import java.util.function.Supplier;
++import java.util.stream.Collectors;
++
+ public abstract class ChunkGenerator {
+     public static final Codec<ChunkGenerator> CODEC = BuiltInRegistries.CHUNK_GENERATOR
+         .byNameCodec()
+@@ -380,7 +366,13 @@ public abstract class ChunkGenerator {
+         }
+     }
+ 
+-    public void addVanillaDecorations(final WorldGenLevel level, final ChunkAccess chunk, final StructureManager structureManager) { // CraftBukkit - rename
++    @Modified(Op.COMPAT)
++    public void addVanillaDecorations(final WorldGenLevel level, final ChunkAccess chunk, final StructureManager structureManager) {
++        this.addVanillaDecorations(level, chunk, structureManager, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.ADD_ARGUMENT)
++    public void addVanillaDecorations(final WorldGenLevel level, final ChunkAccess chunk, final StructureManager structureManager, final HeightContext heightContext) { // CraftBukkit - rename
+         ChunkPos centerPos = chunk.getPos();
+         if (!SharedConstants.debugVoidTerrain(centerPos)) {
+             SectionPos sectionPos = SectionPos.of(centerPos, level.getMinSectionY());
+@@ -411,7 +403,7 @@ public abstract class ChunkGenerator {
+             });
+             possibleBiomes.retainAll(this.biomeSource.possibleBiomes());
+             int featureStepCount = featureList.size();
+-            FeaturePlacer placer = new FeaturePlacer(level, this);
++            FeaturePlacer placer = new FeaturePlacer(level, this, heightContext);
+ 
+             try {
+                 Registry<PlacedFeature> featureRegistry = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE);
+@@ -505,11 +497,19 @@ public abstract class ChunkGenerator {
+         this.applyBiomeDecoration(level, chunk, structureManager, true);
+     }
+ 
++    @Modified(Op.COMPAT)
+     public void applyBiomeDecoration(
+         final WorldGenLevel level, final ChunkAccess chunk, final StructureManager structureManager, final boolean addVanillaDecorations
++    ) {
++        this.applyBiomeDecoration(level, chunk, structureManager, addVanillaDecorations, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.ADD_ARGUMENT)
++    public void applyBiomeDecoration(
++        final WorldGenLevel level, final ChunkAccess chunk, final StructureManager structureManager, final boolean addVanillaDecorations, final HeightContext heightContext
+     ) {
+         if (addVanillaDecorations) {
+-            this.addVanillaDecorations(level, chunk, structureManager);
++            this.addVanillaDecorations(level, chunk, structureManager, heightContext);
+         }
+ 
+         org.bukkit.World world = level.getMinecraftWorld().getWorld();
+diff --git a/net/minecraft/world/level/levelgen/Heightmap.java b/net/minecraft/world/level/levelgen/Heightmap.java
+index 22990ffcb40304279530462a72c489e8e1207e08..9af6248a19246af9dc2cce4a4bcc939b7c2a0cdd 100644
+--- a/net/minecraft/world/level/levelgen/Heightmap.java
++++ b/net/minecraft/world/level/levelgen/Heightmap.java
+@@ -178,7 +178,45 @@ public class Heightmap {
+             "MOTION_BLOCKING_NO_LEAVES",
+             Heightmap.Usage.CLIENT,
+             input -> input.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP_NO_LEAVES) || !input.getFluidState().isEmpty()
++        ),
++
++        // Vanilife start - Custom heightmap types by resource layer
++        RESOURCE_OVERWORLD_WORLD_SURFACE_WG(6, "RESOURCE_OVERWORLD_WORLD_SURFACE_WG", Heightmap.Usage.WORLDGEN, Heightmap.NOT_AIR),
++        RESOURCE_OVERWORLD_WORLD_SURFACE(7, "RESOURCE_OVERWORLD_WORLD_SURFACE", Heightmap.Usage.LIVE_WORLD, Heightmap.NOT_AIR),
++        RESOURCE_OVERWORLD_OCEAN_FLOOR_WG(8, "RESOURCE_OVERWORLD_OCEAN_FLOOR_WG", Heightmap.Usage.WORLDGEN, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_OVERWORLD_OCEAN_FLOOR(9, "RESOURCE_OVERWORLD_OCEAN_FLOOR", Heightmap.Usage.LIVE_WORLD, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_OVERWORLD_MOTION_BLOCKING(10, "RESOURCE_OVERWORLD_MOTION_BLOCKING", Heightmap.Usage.LIVE_WORLD, state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP) || !state.getFluidState().isEmpty()),
++        RESOURCE_OVERWORLD_MOTION_BLOCKING_NO_LEAVES(
++                11,
++                "RESOURCE_OVERWORLD_MOTION_BLOCKING_NO_LEAVES",
++                Heightmap.Usage.LIVE_WORLD,
++                state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP_NO_LEAVES) || !state.getFluidState().isEmpty()
++        ),
++
++        RESOURCE_NETHER_WORLD_SURFACE_WG(12, "RESOURCE_NETHER_WORLD_SURFACE_WG", Heightmap.Usage.WORLDGEN, Heightmap.NOT_AIR),
++        RESOURCE_NETHER_WORLD_SURFACE(13, "RESOURCE_NETHER_WORLD_SURFACE", Heightmap.Usage.LIVE_WORLD, Heightmap.NOT_AIR),
++        RESOURCE_NETHER_OCEAN_FLOOR_WG(14, "RESOURCE_NETHER_OCEAN_FLOOR_WG", Heightmap.Usage.WORLDGEN, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_NETHER_OCEAN_FLOOR(15, "RESOURCE_NETHER_OCEAN_FLOOR", Heightmap.Usage.LIVE_WORLD, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_NETHER_MOTION_BLOCKING(16, "RESOURCE_NETHER_MOTION_BLOCKING", Heightmap.Usage.LIVE_WORLD, state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP) || !state.getFluidState().isEmpty()),
++        RESOURCE_NETHER_MOTION_BLOCKING_NO_LEAVES(
++                17,
++                "RESOURCE_NETHER_MOTION_BLOCKING_NO_LEAVES",
++                Heightmap.Usage.LIVE_WORLD,
++                state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP_NO_LEAVES) || !state.getFluidState().isEmpty()
++        ),
++
++        RESOURCE_END_WORLD_SURFACE_WG(18, "RESOURCE_END_WORLD_SURFACE_WG", Heightmap.Usage.WORLDGEN, Heightmap.NOT_AIR),
++        RESOURCE_END_WORLD_SURFACE(19, "RESOURCE_END_WORLD_SURFACE", Heightmap.Usage.LIVE_WORLD, Heightmap.NOT_AIR),
++        RESOURCE_END_OCEAN_FLOOR_WG(20, "RESOURCE_END_OCEAN_FLOOR_WG", Heightmap.Usage.WORLDGEN, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_END_OCEAN_FLOOR(21, "RESOURCE_END_OCEAN_FLOOR", Heightmap.Usage.LIVE_WORLD, Heightmap.MATERIAL_MOTION_BLOCKING),
++        RESOURCE_END_MOTION_BLOCKING(22, "RESOURCE_END_MOTION_BLOCKING", Heightmap.Usage.LIVE_WORLD, state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP) || !state.getFluidState().isEmpty()),
++        RESOURCE_END_MOTION_BLOCKING_NO_LEAVES(
++                23,
++                "RESOURCE_END_MOTION_BLOCKING_NO_LEAVES",
++                Heightmap.Usage.LIVE_WORLD,
++                state -> state.is(BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP_NO_LEAVES) || !state.getFluidState().isEmpty()
+         );
++        // Vanilife end - Custom heightmap types by resource layer
+ 
+         public static final Codec<Heightmap.Types> CODEC = StringRepresentable.fromEnum(Heightmap.Types::values);
+         private static final IntFunction<Heightmap.Types> BY_ID = ByIdMap.continuous(t -> t.id, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+diff --git a/net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java b/net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java
+index c4f4af083bb4a0f1abff3388e8a3f11d06bc280b..693ac7877ae592484160257ddf744ab095882393 100644
+--- a/net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java
++++ b/net/minecraft/world/level/levelgen/NoiseGeneratorSettings.java
+@@ -73,6 +73,24 @@ public record NoiseGeneratorSettings(
+         return this.useLegacyRandomSource ? WorldgenRandom.Algorithm.LEGACY : WorldgenRandom.Algorithm.XOROSHIRO;
+     }
+ 
++    // Vanilife start - Create a new NoiseGeneratorSettings with different NoiseSettings
++    public NoiseGeneratorSettings withDifferentNoiseSettings(final NoiseSettings noiseSettings) {
++        return new NoiseGeneratorSettings(
++            noiseSettings,
++            this.defaultBlock,
++            this.defaultFluid,
++            this.noiseRouter,
++            this.materialRule,
++            this.spawnTarget,
++            this.seaLevel,
++            this.disableMobGeneration,
++            this.aquifers,
++            this.useLegacyRandomSource,
++            this.debugFunctions
++        );
++    }
++    // Vanilife end - Create a new NoiseGeneratorSettings with different NoiseSettings
++
+     public static void bootstrap(final BootstrapContext<NoiseGeneratorSettings> context) {
+         context.register(OVERWORLD, overworld(context, false, false));
+         context.register(LARGE_BIOMES, overworld(context, false, true));
+diff --git a/net/minecraft/world/level/levelgen/NoiseRouterData.java b/net/minecraft/world/level/levelgen/NoiseRouterData.java
+index 45dd922f0913f575a3ebfd590139d35486ad1866..0982f65746ac8251e24e4feeda1e9668263f4236 100644
+--- a/net/minecraft/world/level/levelgen/NoiseRouterData.java
++++ b/net/minecraft/world/level/levelgen/NoiseRouterData.java
+@@ -3,6 +3,9 @@ package net.minecraft.world.level.levelgen;
+ import it.unimi.dsi.fastutil.floats.FloatList;
+ import java.util.List;
+ import java.util.stream.Stream;
++
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.Vec3i;
+@@ -371,7 +374,8 @@ public class NoiseRouterData {
+         return DensityFunctions.interpolated(DensityFunctions.mul(blended, DensityFunctions.constant(0.64F)), cellSizeXz, cellSizeY).squeeze();
+     }
+ 
+-    protected static NoiseRouter overworld(
++    @Modified(Op.MAKE_PUBLIC)
++    public static NoiseRouter overworld(
+         final HolderGetter<DensityFunction> functions, final OverworldFunctionSet<ResourceKey<DensityFunction>> functionNames
+     ) {
+         OverworldFunctionSet<DensityFunction> functionSet = functionNames.map(key -> getFunction(functions, key));
+@@ -387,6 +391,21 @@ public class NoiseRouterData {
+         );
+     }
+ 
++    @Modified(Op.COMPAT)
++    public static NoiseRouter overworld(
++        final HolderGetter<DensityFunction> densityFunctionRegistry, final HolderGetter<NormalNoise> noiseParameters, final boolean large, final boolean amplified
++    ) {
++        OverworldFunctionSet<ResourceKey<DensityFunction>> functionNames;
++        if (amplified) {
++            functionNames = AMPLIFIED_OVERWORLD_FUNCTIONS;
++        } else if (large) {
++            functionNames = LARGE_OVERWORLD_FUNCTIONS;
++        } else {
++            functionNames = OVERWORLD_FUNCTIONS;
++        }
++        return overworld(densityFunctionRegistry, functionNames);
++    }
++
+     protected static Aquifer.Config overworldAquifers(
+         final HolderGetter<DensityFunction> functions, final HolderGetter<NormalNoise> noises, final OverworldFunctionSet<ResourceKey<DensityFunction>> names
+     ) {
+@@ -479,7 +498,8 @@ public class NoiseRouterData {
+         return slide(caves, minY, height, 72, -184, -23.4375F, 4, 32, -0.234375F);
+     }
+ 
+-    protected static NoiseRouter nether(final HolderGetter<DensityFunction> functions, final HolderGetter<NormalNoise> noises) {
++    @Modified(Op.MAKE_PUBLIC)
++    public static NoiseRouter nether(final HolderGetter<DensityFunction> functions, final HolderGetter<NormalNoise> noises) {
+         DensityFunction temperature = DensityFunctions.shiftedNoise2d(
+             DensityFunctions.zero(), DensityFunctions.zero(), 0.25, noises.getOrThrow(Noises.TEMPERATURE_NETHER)
+         );
+diff --git a/net/minecraft/world/level/levelgen/NoiseSettings.java b/net/minecraft/world/level/levelgen/NoiseSettings.java
+index 9cc2d9deb6b37caf4d21d82df9dc8ed8116ce38d..a4750b7916017fbd267219e527c5845067a040fc 100644
+--- a/net/minecraft/world/level/levelgen/NoiseSettings.java
++++ b/net/minecraft/world/level/levelgen/NoiseSettings.java
+@@ -4,6 +4,8 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.function.Function;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.dimension.DimensionType;
+ 
+@@ -16,8 +18,10 @@ public record NoiseSettings(int minY, int height) {
+                 .apply(i, NoiseSettings::new)
+         )
+         .comapFlatMap(NoiseSettings::guardY, Function.identity());
+-    static final NoiseSettings OVERWORLD_NOISE_SETTINGS = create(-64, 384);
+-    static final NoiseSettings NETHER_NOISE_SETTINGS = create(0, 128);
++    @Modified(Op.MAKE_PUBLIC)
++    public static final NoiseSettings OVERWORLD_NOISE_SETTINGS = create(-64, 384);
++    @Modified(Op.MAKE_PUBLIC)
++    public static final NoiseSettings NETHER_NOISE_SETTINGS = create(0, 128);
+     static final NoiseSettings END_NOISE_SETTINGS = create(0, 128);
+     static final NoiseSettings CAVES_NOISE_SETTINGS = create(-64, 192);
+     static final NoiseSettings FLOATING_ISLANDS_NOISE_SETTINGS = create(0, 256);
+diff --git a/net/minecraft/world/level/levelgen/feature/BambooFeature.java b/net/minecraft/world/level/levelgen/feature/BambooFeature.java
+index c11392b727c7bf00412d05d3c50c9082e8b6e03d..b045772748d2c8cd2feddff862b9d3831068f8f6 100644
+--- a/net/minecraft/world/level/levelgen/feature/BambooFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/BambooFeature.java
+@@ -3,6 +3,9 @@ package net.minecraft.world.level.levelgen.feature;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.tags.BlockTags;
+@@ -14,7 +17,6 @@ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.BambooLeaves;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ 
+ public record BambooFeature(float probability) implements Feature {
+     private static final BlockState BAMBOO_TRUNK = Blocks.BAMBOO
+@@ -36,6 +38,12 @@ public record BambooFeature(float probability) implements Feature {
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         int placed = 0;
+         BlockPos.MutableBlockPos bambooPos = origin.mutable();
+         BlockPos.MutableBlockPos podzolPos = origin.mutable();
+@@ -50,7 +58,7 @@ public record BambooFeature(float probability) implements Feature {
+                             int xd = xx - origin.getX();
+                             int zd = zz - origin.getZ();
+                             if (xd * xd + zd * zd <= r * r) {
+-                                podzolPos.set(xx, level.getHeight(Heightmap.Types.WORLD_SURFACE, xx, zz) - 1, zz);
++                                podzolPos.set(xx, level.getHeight(heightContext.worldSurface(), xx, zz) - 1, zz);
+                                 if (level.getBlockState(podzolPos).is(BlockTags.BENEATH_BAMBOO_PODZOL_REPLACEABLE)) {
+                                     level.setBlock(podzolPos, Blocks.PODZOL.defaultBlockState(), Block.UPDATE_CLIENTS);
+                                 }
+diff --git a/net/minecraft/world/level/levelgen/feature/BonusChestFeature.java b/net/minecraft/world/level/levelgen/feature/BonusChestFeature.java
+index 6c8e3bfc589e29ea910f7c40f22414ceb3096c76..3377af04f8cc35f7e1180b3e3bdc0ffe1d8b0a4f 100644
+--- a/net/minecraft/world/level/levelgen/feature/BonusChestFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/BonusChestFeature.java
+@@ -3,6 +3,9 @@ package net.minecraft.world.level.levelgen.feature;
+ import com.mojang.serialization.MapCodec;
+ import it.unimi.dsi.fastutil.ints.IntArrayList;
+ import java.util.stream.IntStream;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.util.RandomSource;
+@@ -14,7 +17,6 @@ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+ 
+ public record BonusChestFeature() implements Feature {
+@@ -27,6 +29,12 @@ public record BonusChestFeature() implements Feature {
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         ChunkPos chunkPos = ChunkPos.containing(origin);
+         IntArrayList xPoses = Util.toShuffledList(IntStream.rangeClosed(chunkPos.getMinBlockX(), chunkPos.getMaxBlockX()), random);
+         IntArrayList zPoses = Util.toShuffledList(IntStream.rangeClosed(chunkPos.getMinBlockZ(), chunkPos.getMaxBlockZ()), random);
+@@ -35,7 +43,7 @@ public record BonusChestFeature() implements Feature {
+         for (Integer x : xPoses) {
+             for (Integer z : zPoses) {
+                 mutPos.set(x, 0, z);
+-                BlockPos chestPos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, mutPos);
++                BlockPos chestPos = level.getHeightmapPos(heightContext.motionBlockingNoLeaves(), mutPos);
+                 if (level.isEmptyBlock(chestPos) || level.getBlockState(chestPos).getCollisionShape(level, chestPos).isEmpty()) {
+                     level.setBlock(chestPos, Blocks.CHEST.defaultBlockState(), Block.UPDATE_CLIENTS);
+                     RandomizableContainer.setBlockEntityLootTable(level, random, chestPos, BuiltInLootTables.SPAWN_BONUS_CHEST);
+diff --git a/net/minecraft/world/level/levelgen/feature/Feature.java b/net/minecraft/world/level/levelgen/feature/Feature.java
+index 4210e39e34dc80517de89cb94b5dec91267bc37b..cbd059ccbde2430d2e92c11bd637e9afd756ef08 100644
+--- a/net/minecraft/world/level/levelgen/feature/Feature.java
++++ b/net/minecraft/world/level/levelgen/feature/Feature.java
+@@ -4,6 +4,9 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+@@ -27,6 +30,11 @@ public interface Feature {
+ 
+     boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin);
+ 
++    @Modified(Op.ADD_METHOD)
++    default boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
++        return this.place(level, chunkGenerator, random, origin);
++    }
++
+     default Stream<Holder<Feature>> getSubFeatures() {
+         return Stream.empty();
+     }
+diff --git a/net/minecraft/world/level/levelgen/feature/FossilFeature.java b/net/minecraft/world/level/levelgen/feature/FossilFeature.java
+index f9890e473c400ccf90520db9014dd4f35757056a..3eaeb9963f6efe7b77863eb57dba6649d043c5dc 100644
+--- a/net/minecraft/world/level/levelgen/feature/FossilFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/FossilFeature.java
+@@ -5,6 +5,9 @@ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.List;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.Vec3i;
+@@ -19,7 +22,6 @@ import net.minecraft.world.level.block.Mirror;
+ import net.minecraft.world.level.block.Rotation;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorList;
+@@ -58,6 +60,12 @@ public record FossilFeature(
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         Rotation rotation = Rotation.getRandom(random);
+         int fossilIndex = random.nextInt(this.fossilStructures().size());
+         StructureTemplateManager structureTemplateManager = level.getLevel().getServer().getStructureTemplateManager();
+@@ -79,7 +87,7 @@ public record FossilFeature(
+ 
+         for (int xscan = 0; xscan < size.getX(); xscan++) {
+             for (int zscan = 0; zscan < size.getZ(); zscan++) {
+-                lowestSurfaceY = Math.min(lowestSurfaceY, level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, lowCorner.getX() + xscan, lowCorner.getZ() + zscan));
++                lowestSurfaceY = Math.min(lowestSurfaceY, level.getHeight(heightContext.oceanFloorWg(), lowCorner.getX() + xscan, lowCorner.getZ() + zscan));
+             }
+         }
+ 
+diff --git a/net/minecraft/world/level/levelgen/feature/IcebergFeature.java b/net/minecraft/world/level/levelgen/feature/IcebergFeature.java
+index 6a9c86cf031b14fc02e10de0b9ea3036ce0811f1..a26b372b98284f0d74a85a84a756d0f4c049873c 100644
+--- a/net/minecraft/world/level/levelgen/feature/IcebergFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/IcebergFeature.java
+@@ -2,6 +2,9 @@ package net.minecraft.world.level.levelgen.feature;
+ 
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+@@ -24,7 +27,13 @@ public record IcebergFeature(BlockState state) implements Feature {
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, BlockPos origin) {
+-        origin = new BlockPos(origin.getX(), chunkGenerator.getSeaLevel(), origin.getZ());
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, BlockPos origin, final HeightContext heightContext) {
++        origin = new BlockPos(origin.getX(), heightContext.seaLevel(), origin.getZ());
+         boolean snowOnTop = random.nextDouble() > 0.7;
+         BlockState mainBlockState = this.state;
+         double shapeAngle = random.nextDouble() * 2.0 * Math.PI;
+diff --git a/net/minecraft/world/level/levelgen/feature/LargeDripstoneFeature.java b/net/minecraft/world/level/levelgen/feature/LargeDripstoneFeature.java
+index fad2d4d67a91ba802a5d4a4628eaaf0d658d0659..66c3b911d21a357a54507238bcb5acfc11a3a434 100644
+--- a/net/minecraft/world/level/levelgen/feature/LargeDripstoneFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/LargeDripstoneFeature.java
+@@ -4,6 +4,9 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.Optional;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -22,7 +25,6 @@ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.Column;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.phys.Vec3;
+ import org.jspecify.annotations.Nullable;
+ 
+@@ -63,6 +65,12 @@ public record LargeDripstoneFeature(
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         if (!SpeleothemUtils.isEmptyOrWater(level, origin)) {
+             return false;
+         }
+@@ -102,11 +110,11 @@ public record LargeDripstoneFeature(
+         boolean stalactiteBaseEmbeddedInStone = stalactite.moveBackUntilBaseIsInsideStoneAndShrinkRadiusIfNecessary(level, wind);
+         boolean stalagmiteBaseEmbeddedInStone = stalagmite.moveBackUntilBaseIsInsideStoneAndShrinkRadiusIfNecessary(level, wind);
+         if (stalactiteBaseEmbeddedInStone) {
+-            stalactite.placeBlocks(level, random, wind);
++            stalactite.placeBlocks(level, random, wind, heightContext);
+         }
+ 
+         if (stalagmiteBaseEmbeddedInStone) {
+-            stalagmite.placeBlocks(level, random, wind);
++            stalagmite.placeBlocks(level, random, wind, heightContext);
+         }
+ 
+         if (SharedConstants.DEBUG_LARGE_DRIPSTONE) {
+@@ -187,6 +195,10 @@ public record LargeDripstoneFeature(
+         }
+ 
+         private void placeBlocks(final WorldGenLevel level, final RandomSource random, final LargeDripstoneFeature.WindOffsetter wind) {
++            this.placeBlocks(level, random, wind, new HeightContext.Vanilla(level));
++        }
++
++        private void placeBlocks(final WorldGenLevel level, final RandomSource random, final LargeDripstoneFeature.WindOffsetter wind, final HeightContext heightContext) {
+             for (int dx = -this.radius; dx <= this.radius; dx++) {
+                 for (int dz = -this.radius; dz <= this.radius; dz++) {
+                     float currentRadius = Mth.sqrt(dx * dx + dz * dz);
+@@ -199,7 +211,7 @@ public record LargeDripstoneFeature(
+ 
+                             BlockPos.MutableBlockPos pos = this.root.offset(dx, 0, dz).mutable();
+                             boolean hasBeenOutOfStone = false;
+-                            int maxY = this.pointingUp ? level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, pos.getX(), pos.getZ()) : Integer.MAX_VALUE;
++                            int maxY = this.pointingUp ? level.getHeight(heightContext.worldSurfaceWg(), pos.getX(), pos.getZ()) : Integer.MAX_VALUE;
+ 
+                             for (int i = 0; i < height && pos.getY() < maxY; i++) {
+                                 BlockPos windAdjustedPos = wind.offset(pos);
+diff --git a/net/minecraft/world/level/levelgen/feature/OreFeature.java b/net/minecraft/world/level/levelgen/feature/OreFeature.java
+index e6aee6a38f45b47413aa3bbddf3632bc0c6a93f5..7ff769256a4dadba2efe61e1a27452c1920280fc 100644
+--- a/net/minecraft/world/level/levelgen/feature/OreFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/OreFeature.java
+@@ -3,6 +3,9 @@ package net.minecraft.world.level.levelgen.feature;
+ import com.mojang.serialization.MapCodec;
+ import java.util.BitSet;
+ import java.util.List;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.util.Mth;
+@@ -12,7 +15,6 @@ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.BulkSectionAccess;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.chunk.LevelChunkSection;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.RuleTest;
+ 
+ public class OreFeature extends AbstractOreFeature {
+@@ -37,6 +39,12 @@ public class OreFeature extends AbstractOreFeature {
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         float dir = random.nextFloat() * (float) Math.PI;
+         float spreadXY = this.size / 8.0F;
+         int maxRadius = Mth.ceil((this.size / 16.0F * 2.0F + 1.0F) / 2.0F);
+@@ -55,7 +63,7 @@ public class OreFeature extends AbstractOreFeature {
+ 
+         for (int xprobe = xStart; xprobe <= xStart + sizeXZ; xprobe++) {
+             for (int zprobe = zStart; zprobe <= zStart + sizeXZ; zprobe++) {
+-                if (yStart <= level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, xprobe, zprobe)) {
++                if (yStart <= level.getHeight(heightContext.oceanFloorWg(), xprobe, zprobe)) {
+                     return this.doPlace(level, random, x0, x1, z0, z1, y0, y1, xStart, yStart, zStart, sizeXZ, sizeY);
+                 }
+             }
+diff --git a/net/minecraft/world/level/levelgen/feature/SnowAndFreezeFeature.java b/net/minecraft/world/level/levelgen/feature/SnowAndFreezeFeature.java
+index c7bc80cd246f445fa2bcbe9310c597b17d8dfa94..0c5706d4c21d09d7d8986994bc87c651adb67d12 100644
+--- a/net/minecraft/world/level/levelgen/feature/SnowAndFreezeFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/SnowAndFreezeFeature.java
+@@ -1,6 +1,9 @@
+ package net.minecraft.world.level.levelgen.feature;
+ 
+ import com.mojang.serialization.MapCodec;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.util.RandomSource;
+@@ -11,7 +14,6 @@ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.SnowyBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.Heightmap;
+ 
+ public record SnowAndFreezeFeature() implements Feature {
+     public static final MapCodec<SnowAndFreezeFeature> CODEC = MapCodec.unit(SnowAndFreezeFeature::new);
+@@ -23,6 +25,12 @@ public record SnowAndFreezeFeature() implements Feature {
+ 
+     @Override
+     public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin) {
++        return this.place(level, chunkGenerator, random, origin, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.CHANGE)
++    @Override
++    public boolean place(final WorldGenLevel level, final ChunkGenerator chunkGenerator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
+         BlockPos.MutableBlockPos topPos = new BlockPos.MutableBlockPos();
+         BlockPos.MutableBlockPos belowPos = new BlockPos.MutableBlockPos();
+ 
+@@ -30,7 +38,7 @@ public record SnowAndFreezeFeature() implements Feature {
+             for (int dz = 0; dz < 16; dz++) {
+                 int x = origin.getX() + dx;
+                 int z = origin.getZ() + dz;
+-                int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
++                int y = level.getHeight(heightContext.motionBlocking(), x, z);
+                 topPos.set(x, y, z);
+                 belowPos.set(topPos).move(Direction.DOWN, 1);
+                 Biome biome = level.getBiome(topPos).value();
+diff --git a/net/minecraft/world/level/levelgen/placement/BiomeFilter.java b/net/minecraft/world/level/levelgen/placement/BiomeFilter.java
+index 1345397185b96b42a90a73d07461faefc869733a..8437144ab0af83ed526e0be18de8477e7b9e2780 100644
+--- a/net/minecraft/world/level/levelgen/placement/BiomeFilter.java
++++ b/net/minecraft/world/level/levelgen/placement/BiomeFilter.java
+@@ -21,7 +21,7 @@ public class BiomeFilter implements PlacementFilter {
+     public boolean shouldPlace(final PlacementContext context, final RandomSource random, final BlockPos origin) {
+         PlacedFeature feature = context.topFeature()
+             .orElseThrow(() -> new IllegalStateException("Tried to biome check an unregistered feature, or a feature that should not restrict the biome"));
+-        Holder<Biome> biome = context.getLevel().getBiome(origin);
++        Holder<Biome> biome = context.getLevel().getBiome(origin.atY(context.heightContext().y(origin.getY())));
+         return context.generator().getBiomeGenerationSettings(biome).hasFeature(feature);
+     }
+ 
+diff --git a/net/minecraft/world/level/levelgen/placement/BlockPredicateFilter.java b/net/minecraft/world/level/levelgen/placement/BlockPredicateFilter.java
+index 5e01da7993c2b6706a3584c9075db837cf0bb945..18550dd73cc062bc47e73c3625964443e34beef6 100644
+--- a/net/minecraft/world/level/levelgen/placement/BlockPredicateFilter.java
++++ b/net/minecraft/world/level/levelgen/placement/BlockPredicateFilter.java
+@@ -17,7 +17,7 @@ public record BlockPredicateFilter(BlockPredicate predicate) implements Placemen
+ 
+     @Override
+     public boolean shouldPlace(final PlacementContext context, final RandomSource random, final BlockPos origin) {
+-        return this.predicate.test(context.getLevel(), origin);
++        return this.predicate.test(context.getLevel(), origin.atY(context.heightContext().y(origin.getY())));
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/level/levelgen/placement/FeaturePlacer.java b/net/minecraft/world/level/levelgen/placement/FeaturePlacer.java
+index 3cf1bef05f295c19a25abd2da318f081ce9bb51f..d6753a0488c922b163e7439afcc1e39a151ec6bd 100644
+--- a/net/minecraft/world/level/levelgen/placement/FeaturePlacer.java
++++ b/net/minecraft/world/level/levelgen/placement/FeaturePlacer.java
+@@ -5,6 +5,9 @@ import it.unimi.dsi.fastutil.ints.IntList;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Optional;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.util.RandomSource;
+@@ -16,13 +19,21 @@ import net.minecraft.world.level.levelgen.feature.FeatureCountTracker;
+ public class FeaturePlacer {
+     private final WorldGenLevel level;
+     private final ChunkGenerator generator;
++    @Modified(Op.ADD_FIELD)
++    private final HeightContext heightContext;
+     private final List<BlockPos> positions = new ArrayList<>();
+     private final IntList modifierIndices = new IntArrayList();
+     private final List<BlockPos> modifiedPositions = new ArrayList<>();
+ 
+     public FeaturePlacer(final WorldGenLevel level, final ChunkGenerator generator) {
++        this(level, generator, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.ADD_CONSTRUCTOR)
++    public FeaturePlacer(final WorldGenLevel level, final ChunkGenerator generator, final HeightContext heightContext) {
+         this.level = level;
+         this.generator = generator;
++        this.heightContext = heightContext != null ? heightContext : new HeightContext.Vanilla(level);
+     }
+ 
+     public boolean place(final PlacedFeature placedFeature, final RandomSource random, final BlockPos origin) {
+@@ -35,7 +46,7 @@ public class FeaturePlacer {
+ 
+     private boolean place(final PlacedFeature placedFeature, final RandomSource random, final BlockPos origin, final boolean biomeCheck) {
+         Optional<PlacedFeature> topFeature = biomeCheck ? Optional.of(placedFeature) : Optional.empty();
+-        PlacementContext context = new PlacementContext(this.level, this.generator, topFeature);
++        PlacementContext context = new PlacementContext(this.level, this.generator, topFeature, this.heightContext);
+         Feature feature = placedFeature.feature().value();
+         List<PlacementModifier> placement = placedFeature.placement();
+         if (placement.isEmpty()) {
+@@ -43,7 +54,7 @@ public class FeaturePlacer {
+                 FeatureCountTracker.featurePlaced(this.level.getLevel(), feature, topFeature);
+             }
+ 
+-            return feature.place(this.level, this.generator, random, origin);
++            return feature.place(this.level, this.generator, random, origin, this.heightContext);
+         } else {
+             boolean placedAny = false;
+             this.positions.add(origin);
+@@ -62,7 +73,7 @@ public class FeaturePlacer {
+                     }
+                 } else {
+                     for (BlockPos nextPos : this.modifiedPositions) {
+-                        placedAny |= feature.place(this.level, this.generator, random, nextPos);
++                        placedAny |= feature.place(this.level, this.generator, random, nextPos, this.heightContext);
+                         if (SharedConstants.DEBUG_FEATURE_COUNT) {
+                             FeatureCountTracker.featurePlaced(this.level.getLevel(), feature, topFeature);
+                         }
+diff --git a/net/minecraft/world/level/levelgen/placement/HeightRangePlacement.java b/net/minecraft/world/level/levelgen/placement/HeightRangePlacement.java
+index 9d0154994967f4a3033afc6e265d373f73fe6f01..7a96143c6e4a4f17f154e8ed0e306ea10cb8c0b2 100644
+--- a/net/minecraft/world/level/levelgen/placement/HeightRangePlacement.java
++++ b/net/minecraft/world/level/levelgen/placement/HeightRangePlacement.java
+@@ -29,7 +29,7 @@ public record HeightRangePlacement(HeightProvider height) implements PlacementMo
+ 
+     @Override
+     public void modify(final PlacementContext context, final RandomSource random, final BlockPos origin, final Consumer<BlockPos> output) {
+-        output.accept(origin.atY(this.height.sample(random, context)));
++        output.accept(origin.atY(context.heightContext().y(this.height.sample(random, context))));
+     }
+ 
+     @Override
+diff --git a/net/minecraft/world/level/levelgen/placement/PlacedFeature.java b/net/minecraft/world/level/levelgen/placement/PlacedFeature.java
+index e5f7dc20be4c438236de9d46a5afd3ea37de3356..59395231869b1a81bddea5d3887c78927e8232d0 100644
+--- a/net/minecraft/world/level/levelgen/placement/PlacedFeature.java
++++ b/net/minecraft/world/level/levelgen/placement/PlacedFeature.java
+@@ -4,6 +4,9 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.List;
+ import java.util.stream.Stream;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
+@@ -31,6 +34,18 @@ public record PlacedFeature(Holder<Feature> feature, List<PlacementModifier> pla
+         return placer.place(this, random, origin);
+     }
+ 
++    @Modified(Op.ADD_METHOD)
++    public boolean place(final WorldGenLevel level, final ChunkGenerator generator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
++        FeaturePlacer placer = new FeaturePlacer(level, generator, heightContext);
++        return placer.place(this, random, origin);
++    }
++
++    @Modified(Op.ADD_METHOD)
++    public boolean placeWithBiomeCheck(final WorldGenLevel level, final ChunkGenerator generator, final RandomSource random, final BlockPos origin, final HeightContext heightContext) {
++        FeaturePlacer placer = new FeaturePlacer(level, generator, heightContext);
++        return placer.placeWithBiomeCheck(this, random, origin);
++    }
++
+     public Stream<Holder<Feature>> getFeatures() {
+         return Stream.concat(Stream.of(this.feature), this.feature.value().getSubFeatures());
+     }
+diff --git a/net/minecraft/world/level/levelgen/placement/PlacementContext.java b/net/minecraft/world/level/levelgen/placement/PlacementContext.java
+index 21a65ff27a4b1ec5b66b855782c8707f7929d482..f0ce681c5a344beda0965cee43fc87e93b951954 100644
+--- a/net/minecraft/world/level/levelgen/placement/PlacementContext.java
++++ b/net/minecraft/world/level/levelgen/placement/PlacementContext.java
+@@ -1,6 +1,9 @@
+ package net.minecraft.world.level.levelgen.placement;
+ 
+ import java.util.Optional;
++import net.azisaba.vanilife.annotations.Modified;
++import net.azisaba.vanilife.annotations.Op;
++import net.azisaba.vanilife.server.world.height.HeightContext;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -12,16 +15,29 @@ public class PlacementContext extends WorldGenerationContext {
+     private final WorldGenLevel level;
+     private final ChunkGenerator generator;
+     private final Optional<PlacedFeature> topFeature;
++    @Modified(Op.ADD_FIELD)
++    private final HeightContext heightContext;
+ 
+     public PlacementContext(final WorldGenLevel level, final ChunkGenerator generator, final Optional<PlacedFeature> topFeature) {
++        this(level, generator, topFeature, new HeightContext.Vanilla(level));
++    }
++
++    @Modified(Op.ADD_CONSTRUCTOR)
++    public PlacementContext(final WorldGenLevel level, final ChunkGenerator generator, final Optional<PlacedFeature> topFeature, final HeightContext heightContext) {
+         super(generator, level, level.getLevel()); // Paper - Flat bedrock generator settings
+         this.level = level;
+         this.generator = generator;
+         this.topFeature = topFeature;
++        this.heightContext = heightContext != null ? heightContext : new HeightContext.Vanilla(level);
++    }
++
++    @Modified(Op.ADD_METHOD)
++    public HeightContext heightContext() {
++        return this.heightContext;
+     }
+ 
+     public int getHeight(final Heightmap.Types type, final int x, final int z) {
+-        return this.level.getHeight(type, x, z);
++        return this.level.getHeight(this.heightContext.resolveHeightmapOrSelf(type), x, z);
+     }
+ 
+     public BlockState getBlockState(final BlockPos pos) {
