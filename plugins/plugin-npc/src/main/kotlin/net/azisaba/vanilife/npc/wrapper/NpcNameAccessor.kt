@@ -1,19 +1,12 @@
 package net.azisaba.vanilife.npc.wrapper
 
 import net.kyori.adventure.text.Component
-import org.bukkit.Nameable
 import org.bukkit.entity.Chicken
 
-interface NpcNameAccessor : Nameable {
-    @Deprecated("Use customName() instead")
-    override fun getCustomName(): String? {
-        throw UnsupportedOperationException("Legacy message API not supported")
-    }
+interface NpcNameAccessor {
+    fun customName(): Component?
 
-    @Deprecated("Use customName(Component) instead")
-    override fun setCustomName(name: String?) {
-        throw UnsupportedOperationException("Legacy message API not supported")
-    }
+    fun customName(customName: Component?)
 }
 
 internal class NpcNameAccessorImpl(private val delegate: Chicken) : NpcNameAccessor {
