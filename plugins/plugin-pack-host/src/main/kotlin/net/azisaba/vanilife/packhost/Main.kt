@@ -32,6 +32,7 @@ import net.azisaba.vanilife.mining.MiningTranslations
 import net.azisaba.vanilife.npc.NpcFonts
 import net.azisaba.vanilife.npc.NpcTranslations
 import net.azisaba.vanilife.portal.PortalTranslations
+import net.azisaba.vanilife.reloadableConfig
 import net.azisaba.vanilife.toolswap.ToolSwapTranslations
 import net.kyori.adventure.resource.ResourcePackInfo
 import net.kyori.adventure.text.Component
@@ -40,6 +41,8 @@ import java.net.URI
 import java.util.*
 
 internal class Main : JavaPlugin() {
+    private var stopServer: (() -> Unit)? = null
+
     override fun onEnable() {
         val packed = Packed {
             metadata {
@@ -315,14 +318,21 @@ internal class Main : JavaPlugin() {
             )
         }
 
-        val configured = packed.configureEmbeddedServer(port = 8085)
+        val config = reloadableConfig(Configuration(), Configuration.serializer()).value()
+        val configured = packed.configureEmbeddedServer(port = config.port)
         configured.embeddedServer.start(wait = false)
+        stopServer = { configured.embeddedServer.stop() }
         val packInfo = ResourcePackInfo.resourcePackInfo(
             UUID.randomUUID(),
-            URI.create("http://localhost:8085"),
+            URI.create(config.publicUrl),
             configured.computeSha1Hash()
         )
 
         server.pluginManager.registerEvents(PlayerListener(packInfo), this)
+    }
+
+    override fun onDisable() {
+        stopServer?.invoke()
+        stopServer = null
     }
 }
