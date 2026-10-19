@@ -1,7 +1,7 @@
 package net.azisaba.vanilife.island
 
-import io.papermc.paper.registry.TypedKey
 import io.papermc.paper.registry.RegistryKey
+import io.papermc.paper.registry.TypedKey
 import net.azisaba.serialization.IntProvider
 import net.azisaba.vanilife.ConfigurationHolder
 import net.azisaba.vanilife.island.enchantment.EnchantmentAccessor
@@ -9,6 +9,7 @@ import net.azisaba.vanilife.island.event.IslandEnchantmentAddEvent
 import net.azisaba.vanilife.island.event.IslandEnchantmentRemoveEvent
 import net.azisaba.vanilife.island.leveling.LevelDataAccessor
 import net.azisaba.vanilife.island.leveling.score.ScoreSource
+import net.azisaba.vanilife.island.members.MembersAccessor
 import net.azisaba.vanilife.island.storage.StorageAccessor
 import net.azisaba.vanilife.island.visitors.VisitorsAccessor
 import net.azisaba.vanilife.island.waves.WaveAccessor
@@ -16,11 +17,15 @@ import net.azisaba.vanilife.island.wrack.WrackAccessor
 import net.azisaba.vanilife.world.IslandPosition
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.audience.ForwardingAudience
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
+import org.bukkit.OfflinePlayer
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.jetbrains.exposed.v1.jdbc.Database
+import java.util.*
 
 class Island internal constructor(
     position: IslandPosition,
@@ -33,6 +38,7 @@ class Island internal constructor(
     private val skyColorAccessor: SkyColorAccessor = SkyColorAccessor.fromDatabase(position, database),
     private val levelDataAccessor: LevelDataAccessor = LevelDataAccessor.fromDatabase(position, database),
     private val enchantmentAccessor: EnchantmentAccessor = EnchantmentAccessor.fromDatabase(position, database),
+    private val membersAccessor: MembersAccessor = MembersAccessor.fromDatabase(position, database),
     private val storageAccessor: StorageAccessor = StorageAccessor.fromDatabase(position, database),
     private val visitorsAccessor: VisitorsAccessor = VisitorsAccessor.fromDatabase(position, database),
     private val waveAccessor: WaveAccessor = WaveAccessor.create(position),
@@ -44,11 +50,47 @@ class Island internal constructor(
     SkyColorAccessor by skyColorAccessor,
     LevelDataAccessor by levelDataAccessor,
     EnchantmentAccessor by enchantmentAccessor,
+    MembersAccessor by membersAccessor,
     StorageAccessor by storageAccessor,
     VisitorsAccessor by visitorsAccessor,
     WaveAccessor by waveAccessor,
     WrackAccessor by wrackAccessor {
     override fun audiences(): Iterable<Audience> = IslandPlayerMap.collect(this).mapNotNull(Bukkit::getPlayer)
+
+    override suspend fun visitable(visitable: Boolean) {
+        primaryDataAccessor.visitable(visitable)
+        if (!visitable) {
+            IslandPlayerMap.collect(this)
+                .mapNotNull(Bukkit::getPlayer)
+                .filter { it.uniqueId != owner && !isMember(it.uniqueId) && !it.isOp }
+                .forEach { visitor -> kickVisitor(visitor) }
+        }
+    }
+
+    override suspend fun banVisitor(uuid: UUID): Boolean {
+        if (uuid == owner) return false
+        removeMember(uuid)
+        val result = visitorsAccessor.banVisitor(uuid)
+        Bukkit.getPlayer(uuid)?.let { player ->
+            if (IslandPlayerMap.lookup(player.uniqueId) === this && !player.isOp) {
+                kickVisitor(player)
+            }
+        }
+        return result
+    }
+
+    override suspend fun banVisitor(player: OfflinePlayer): Boolean = banVisitor(player.uniqueId)
+
+    suspend fun kickVisitor(player: Player): Boolean {
+        if (player.uniqueId == owner) return false
+        if (IslandPlayerMap.lookup(player.uniqueId) !== this) return false
+        val ownIsland = player.ownedIsland()
+        player.teleport(ownIsland)
+        player.sendMessage(
+            Component.translatable(IslandTranslations.ISLAND_VISITOR_KICKED, NamedTextColor.RED)
+        )
+        return true
+    }
 
     override suspend fun skyColor(rainLevel: Float, thunderLevel: Float) {
         skyColorAccessor.skyColor(rainLevel, thunderLevel)
@@ -117,7 +159,9 @@ class Island internal constructor(
         bootstrapSkyColorData()
         bootstrapLevelData()
         bootstrapEnchantments()
+        bootstrapMembers()
         bootstrapStorage()
+        bootstrapVisitors()
     }
 
     companion object {

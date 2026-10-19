@@ -17,7 +17,11 @@ interface PrimaryDataAccessor {
 
     val displayName: Component
 
+    val isVisitable: Boolean
+
     suspend fun displayName(displayName: Component)
+
+    suspend fun visitable(visitable: Boolean)
 
     @ApiStatus.Internal
     suspend fun bootstrapPrimaryData()
@@ -36,6 +40,9 @@ private class PrimaryDataAccessorImpl(override val position: IslandPosition, pri
     override val displayName: Component
         get() = requireLoaded().displayName
 
+    override val isVisitable: Boolean
+        get() = requireLoaded().visitable
+
     private var cacheData: CacheData? = null
 
     private val positionId: Long = position.toLong()
@@ -48,18 +55,27 @@ private class PrimaryDataAccessorImpl(override val position: IslandPosition, pri
         cacheData = requireLoaded().copy(displayName = displayName)
     }
 
+    override suspend fun visitable(visitable: Boolean) = suspendTransaction(database) {
+        requireLoaded()
+        IslandsTable.update(where = { IslandsTable.id eq positionId }) {
+            it[IslandsTable.visitable] = visitable
+        }
+        cacheData = requireLoaded().copy(visitable = visitable)
+    }
+
     override suspend fun bootstrapPrimaryData() = suspendTransaction(database) {
-        val row = IslandsTable.select(IslandsTable.owner, IslandsTable.displayName)
+        val row = IslandsTable.select(IslandsTable.owner, IslandsTable.displayName, IslandsTable.visitable)
             .where { IslandsTable.id eq positionId }
             .single()
         cacheData = CacheData(
             owner = row[IslandsTable.owner],
             displayName = row[IslandsTable.displayName],
+            visitable = row[IslandsTable.visitable],
         )
     }
 
     private fun requireLoaded(): CacheData =
         cacheData ?: throw IllegalStateException("Primary data has not yet been loaded")
 
-    private data class CacheData(val owner: UUID, val displayName: Component)
+    private data class CacheData(val owner: UUID, val displayName: Component, val visitable: Boolean)
 }

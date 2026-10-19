@@ -30,4 +30,6 @@ object IslandsTable : LongIdTable("islands", "position") {
     val skyRainLevel: Column<Float> = float("sky_rain_level").default(0f)
 
     val skyThunderLevel: Column<Float> = float("sky_thunder_level").default(0f)
+
+    val visitable: Column<Boolean> = bool("visitable").default(true)
 }

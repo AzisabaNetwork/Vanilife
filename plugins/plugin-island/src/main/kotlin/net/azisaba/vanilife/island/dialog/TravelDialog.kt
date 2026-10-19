@@ -47,6 +47,7 @@ object TravelDialog : KoinComponent {
 
         val candidates = cacheMap.listIslands()
             .filter { it.position != ownIsland.position }
+            .filter { (it.isVisitable || it.isMember(player.uniqueId) || player.isOp) && !it.isBanned(player.uniqueId) }
             .sortedWith(
                 compareByDescending<Island> { IslandPlayerMap.collect(it).size }
                     .thenByDescending(Island::level)
@@ -163,6 +164,14 @@ object TravelDialog : KoinComponent {
                     { _, audience ->
                         val visitor = audience as? Player ?: return@customClick
                         visitor.closeDialog()
+                        if ((!island.isVisitable && !island.isMember(visitor.uniqueId) && !visitor.isOp) ||
+                            (island.isBanned(visitor.uniqueId) && !visitor.isOp)
+                        ) {
+                            visitor.sendMessage(
+                                Component.translatable(IslandTranslations.DIALOG_VANILIFE_TRAVEL_CANNOT_VISIT, NamedTextColor.RED)
+                            )
+                            return@customClick
+                        }
                         plugin.launch {
                             visitor.teleport(island)
                         }

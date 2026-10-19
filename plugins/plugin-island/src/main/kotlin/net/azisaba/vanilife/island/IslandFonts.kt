@@ -66,6 +66,18 @@ object IslandFonts {
                 ascent = 8,
                 height = 9,
             ),
+            PackBitmapFontProvider(
+                file = Key.key("item/writable_book.png"),
+                chars = listOf(IslandIcons.MEMBERS.toString()),
+                ascent = 8,
+                height = 9,
+            ),
+            PackBitmapFontProvider(
+                file = Key.key("item/oak_door.png"),
+                chars = listOf(IslandIcons.VISITORS.toString()),
+                ascent = 8,
+                height = 9,
+            ),
         )
     )
 
@@ -216,6 +228,8 @@ object IslandFonts {
         val SKY_COLOR: Char = nextChar()
         val SPAWN_LOCATION: Char = nextChar()
         val TRAVEL: Char = nextChar()
+        val MEMBERS: Char = nextChar()
+        val VISITORS: Char = nextChar()
     }
 
     object LevelIcons : CharCodeFactory() {

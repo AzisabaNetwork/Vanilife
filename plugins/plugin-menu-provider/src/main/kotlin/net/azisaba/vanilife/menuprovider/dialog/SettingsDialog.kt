@@ -7,8 +7,10 @@ import io.papermc.paper.registry.data.dialog.type.DialogType
 import io.papermc.paper.registry.set.RegistrySet
 import net.azisaba.vanilife.island.IslandFeature
 import net.azisaba.vanilife.island.dialog.DisplayNameDialog
+import net.azisaba.vanilife.island.dialog.MembersDialog
 import net.azisaba.vanilife.island.dialog.SkyColorDialog
 import net.azisaba.vanilife.island.dialog.SpawnLocationDialog
+import net.azisaba.vanilife.island.dialog.VisitorsDialog
 import net.azisaba.vanilife.island.ownedIsland
 import net.azisaba.vanilife.menuprovider.MenuProviderFonts
 import net.azisaba.vanilife.menuprovider.MenuProviderTranslations
@@ -39,6 +41,8 @@ internal object SettingsDialog {
                             RegistryKey.DIALOG,
                             buildList {
                                 add(DisplayNameDialog.create(island))
+                                add(MembersDialog.create(island))
+                                add(VisitorsDialog.create(island))
 
                                 if (island.isEnabled(IslandFeature.CUSTOM_SPAWN_POINT)) {
                                     add(SpawnLocationDialog.create(island))

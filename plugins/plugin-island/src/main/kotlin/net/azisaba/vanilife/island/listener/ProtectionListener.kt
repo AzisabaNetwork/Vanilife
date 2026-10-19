@@ -425,6 +425,11 @@ internal class ProtectionListener(private val cacheMap: IslandCacheMap) : Listen
         val targetPosition = IslandPosition.fromPosition(location)
         if (!targetPosition.isWithinBoundary(location)) return false
 
+        val targetIsland = cacheMap.lookupCached(targetPosition)
+        if (targetIsland != null) {
+            return targetIsland.owner == player.uniqueId || targetIsland.isMember(player.uniqueId)
+        }
+
         val ownedPosition = cacheMap.lookupCachedPosition(player.uniqueId) ?: return false
         return targetPosition == ownedPosition
     }
