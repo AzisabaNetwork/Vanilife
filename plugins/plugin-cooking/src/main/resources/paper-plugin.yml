@@ -11,3 +11,8 @@ dependencies:
   server:
     AzisabaNetwork.Vanilife.Runtime:
       load: BEFORE
+permissions:
+  vanilife.command.tomato:
+    default: op
+  vanilife.command.vgive:
+    default: op

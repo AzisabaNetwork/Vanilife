@@ -16,7 +16,7 @@ class Bootstrap : PluginBootstrap {
         context.lifecycleManager.registerEventHandler(
             LifecycleEvents.COMMANDS.newHandler { event ->
                 event.registrar().register(TomatoCommand.create())
-                event.registrar().register(VGiveCommand.create())
+                event.registrar().register(VGiveCommand.create(), listOf("vgive"))
             }
         )
     }

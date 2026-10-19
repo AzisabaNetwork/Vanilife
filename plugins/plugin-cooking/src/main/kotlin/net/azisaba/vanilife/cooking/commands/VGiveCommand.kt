@@ -30,7 +30,11 @@ object VGiveCommand {
     private val UNKNOWN_ITEM = SimpleCommandExceptionType(LiteralMessage("Unknown server item"))
 
     fun create(): LiteralCommandNode<CommandSourceStack> = Commands.literal("v-give")
-        .requires(Commands.restricted { it.sender.hasPermission("minecraft.command.give") })
+        .requires(
+            Commands.restricted {
+                it.sender.hasPermission("vanilife.command.vgive") || it.sender.hasPermission("minecraft.command.give")
+            }
+        )
         .then(
             Commands.argument("item", StringArgumentType.word())
                 .suggests(::suggestItems)
