@@ -17,3 +17,6 @@ dependencies:
       load: BEFORE
     packetevents:
       load: BEFORE
+permissions:
+  vanilife.command.island:
+    default: op
