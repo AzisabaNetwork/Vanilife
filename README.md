@@ -158,7 +158,7 @@ To properly understand API additions, please read
 [Project overview](https://docs.papermc.io/folia/reference/overview).
 
 - RegionScheduler, AsyncScheduler, GlobalRegionScheduler, and EntityScheduler 
-  acting as a replacement for  the BukkitScheduler.
+  acting as a replacement for the BukkitScheduler.
   The entity scheduler is retrieved via Entity#getScheduler, and the
   rest of the schedulers can be retrieved from the Bukkit/Server classes.
 - Bukkit#isOwnedByCurrentRegion to test if the current ticking region

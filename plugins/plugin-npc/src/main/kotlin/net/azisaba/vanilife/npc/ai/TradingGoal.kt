@@ -4,7 +4,7 @@ import com.destroystokyo.paper.entity.ai.Goal
 import com.destroystokyo.paper.entity.ai.GoalKey
 import com.destroystokyo.paper.entity.ai.GoalType
 import kr.toxicity.model.api.bukkit.platform.BukkitPlayer
-import kr.toxicity.model.api.event.hitbox.HitBoxInteractEvent
+import kr.toxicity.model.api.event.hitbox.HitBoxInteractAtEvent
 import kr.toxicity.model.api.tracker.Tracker
 import net.azisaba.vanilife.npc.NpcFonts
 import net.azisaba.vanilife.npc.wrapper.NpcWrapper
@@ -21,7 +21,7 @@ internal class TradingGoal(private val npc: NpcWrapper, private val mob: Mob, tr
     private var activeTrader: Player? = null
 
     init {
-        tracker.listenHitBox(HitBoxInteractEvent::class.java, ::handleHitBoxInteract)
+        tracker.listenHitBox(HitBoxInteractAtEvent::class.java, ::handleHitBoxInteract)
     }
 
     override fun getKey(): GoalKey<Mob> = NpcGoalKeys.TRADING
@@ -67,7 +67,7 @@ internal class TradingGoal(private val npc: NpcWrapper, private val mob: Mob, tr
         mob.lookAt(trader)
     }
 
-    private fun handleHitBoxInteract(event: HitBoxInteractEvent) {
+    private fun handleHitBoxInteract(event: HitBoxInteractAtEvent) {
         val player = (event.who as? BukkitPlayer)?.source() ?: return
         if (!player.isSneaking) {
             requestedTrader = player

@@ -6,7 +6,7 @@ import kr.toxicity.model.api.bukkit.platform.BukkitEntity
 import kr.toxicity.model.api.bukkit.platform.BukkitLocation
 import kr.toxicity.model.api.bukkit.platform.BukkitPlayer
 import kr.toxicity.model.api.entity.BaseEntity
-import kr.toxicity.model.api.event.hitbox.HitBoxInteractEvent
+import kr.toxicity.model.api.event.hitbox.HitBoxInteractAtEvent
 import kr.toxicity.model.api.nms.HitBoxListener
 import kr.toxicity.model.api.tracker.DummyTracker
 import kr.toxicity.model.api.util.function.BonePredicate
@@ -74,14 +74,14 @@ class WrackEntity internal constructor(
             tracker.createHitBox(
                 BaseEntity.of(BukkitEntity(textDisplay)),
                 HitBoxListener.builder()
-                    .listen(HitBoxInteractEvent::class.java, ::interact)
+                    .listen(HitBoxInteractAtEvent::class.java, ::interact)
                     .build(),
                 BonePredicate.TRUE,
             )
         }
     }
 
-    private fun interact(event: HitBoxInteractEvent) {
+    private fun interact(event: HitBoxInteractAtEvent) {
         val player = (event.who as? BukkitPlayer)?.source() ?: return
         if (!(player.isOp && player.gameMode.isInvulnerable) &&
             cacheMap.lookupCachedPosition(player.uniqueId) != islandPosition

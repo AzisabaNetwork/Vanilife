@@ -2,7 +2,7 @@ package net.azisaba.vanilife.npc.wrapper
 
 import kr.toxicity.model.api.bukkit.platform.BukkitEntity
 import kr.toxicity.model.api.bukkit.platform.BukkitPlayer
-import kr.toxicity.model.api.event.hitbox.HitBoxInteractEvent
+import kr.toxicity.model.api.event.hitbox.HitBoxInteractAtEvent
 import kr.toxicity.model.api.tracker.Tracker
 import net.azisaba.vanilife.Vanilife
 import net.azisaba.vanilife.npc.NpcMode
@@ -54,7 +54,7 @@ class NpcWrapper private constructor(
 
         registerGoals()
 
-        tracker.listenHitBox(HitBoxInteractEvent::class.java, ::handleHitBoxInteract)
+        tracker.listenHitBox(HitBoxInteractAtEvent::class.java, ::handleHitBoxInteract)
     }
 
     fun dispose() {
@@ -78,7 +78,7 @@ class NpcWrapper private constructor(
         Bukkit.getMobGoals().addGoal(delegate, 10, HopAroundGoal(this))
     }
 
-    private fun handleHitBoxInteract(event: HitBoxInteractEvent) {
+    private fun handleHitBoxInteract(event: HitBoxInteractAtEvent) {
         val player = (event.who as? BukkitPlayer)?.source() ?: return
         if (tryTame(player)) return
         if (!player.isSneaking || !isOwner(player)) return
