@@ -15,7 +15,8 @@ object IslandsTable : LongIdTable("islands", "position") {
 
     val score: Column<Double> = double("score").default(0.0)
 
-    val displayName: Column<Component> = component("display_name").default(Component.text("Untitled"))
+    // A SQL DEFAULT would be rendered as the JSON string "Untitled", which PostgreSQL parses as a column reference
+    val displayName: Column<Component> = component("display_name").clientDefault { Component.text("Untitled") }
 
     val spawnOffsetX: Column<Double> = double("spawn_offset_x").default(0.0)
 
