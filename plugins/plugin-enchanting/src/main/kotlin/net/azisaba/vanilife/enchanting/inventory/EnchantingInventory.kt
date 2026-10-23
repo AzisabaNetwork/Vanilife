@@ -116,7 +116,7 @@ internal class EnchantingInventory : InventoryHolder {
             recipeBook = recipes
             updateResult(player)
             player.updateInventory()
-            val user = PacketEvents.getAPI().playerManager.getUser(player)
+            val user = PacketEvents.getAPI().playerManager.getUser(player) ?: return@launch
             val view = player.openInventory
             val windowId = view.containerId
             val stateId = view.stateId

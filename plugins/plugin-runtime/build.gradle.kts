@@ -1,7 +1,9 @@
 dependencies {
     api(kotlin("stdlib"))
     api(project(":plugins:common"))
-    api(libs.entitylib)
+    api(libs.entitylib) {
+        exclude(group = "com.github.retrooper")
+    }
     api(libs.exposed.core)
     api(libs.exposed.jdbc)
     api(libs.exposed.kotlin.datetime)
@@ -19,6 +21,7 @@ dependencies {
     api(libs.packed.core)
     api(libs.packed.resource)
     api(libs.packed.server)
-    api(libs.packetevents)
+    // Provided by the packetevents plugin at runtime; bundling a second copy leaves its API uninitialized
+    compileOnlyApi(libs.packetevents)
     api(libs.postgresql)
 }

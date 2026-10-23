@@ -16,7 +16,7 @@ class Main : JavaPlugin() {
     private lateinit var koinApp: KoinApplication
 
     override fun onLoad() {
-        if (!PacketEvents.getAPI().isLoaded) {
+        if (PacketEvents.getAPI()?.isLoaded != true) {
             PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
             PacketEvents.getAPI().load()
         }
@@ -42,7 +42,7 @@ class Main : JavaPlugin() {
         if (::koinApp.isInitialized) {
             koinApp.close()
         }
-        if (PacketEvents.getAPI().isInitialized && server.pluginManager.getPlugin("packetevents") == null) {
+        if (PacketEvents.getAPI()?.isInitialized == true && server.pluginManager.getPlugin("packetevents") == null) {
             PacketEvents.getAPI().terminate()
         }
     }

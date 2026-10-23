@@ -42,7 +42,7 @@ internal class EnchantingRecipeBook(private val candidates: List<Candidate>) {
     }
 
     fun sendRecipeBook(player: Player) {
-        val user = PacketEvents.getAPI().playerManager.getUser(player)
+        val user = PacketEvents.getAPI().playerManager.getUser(player) ?: return
         if (candidates.isEmpty()) {
             user.sendPacket(WrapperPlayServerRecipeBookAdd(emptyList(), true))
             return
@@ -63,13 +63,13 @@ internal class EnchantingRecipeBook(private val candidates: List<Candidate>) {
             empty().sendRecipeBook(player)
             RecipeBookStates.lookup(player)?.settings?.let { settings ->
                 PacketEvents.getAPI().playerManager.getUser(player)
-                    .sendPacket(WrapperPlayServerRecipeBookSettings(RecipeBookStates.createExpandedSettings(settings)))
+                    ?.sendPacket(WrapperPlayServerRecipeBookSettings(RecipeBookStates.createExpandedSettings(settings)))
             }
         }
     }
 
     fun sendPreview(player: Player, windowId: Int, display: ShapedCraftingRecipeDisplay) {
-        PacketEvents.getAPI().playerManager.getUser(player).sendPacket(
+        PacketEvents.getAPI().playerManager.getUser(player)?.sendPacket(
             WrapperPlayServerCraftRecipeResponse(windowId, display),
         )
     }
@@ -93,7 +93,7 @@ internal class EnchantingRecipeBook(private val candidates: List<Candidate>) {
         val snapshot = RecipeBookStates.lookup(player) ?: return
         plugin.launch(plugin.entityDispatcher(player)) {
             delay(1L.milliseconds)
-            val user = PacketEvents.getAPI().playerManager.getUser(player)
+            val user = PacketEvents.getAPI().playerManager.getUser(player) ?: return@launch
             RecipeBookStates.runWithoutCaching(player) {
                 RecipeBookToastSuppressor.runWithoutToast(player) {
                     user.sendPacket(WrapperPlayServerRecipeBookAdd(emptyList(), true))

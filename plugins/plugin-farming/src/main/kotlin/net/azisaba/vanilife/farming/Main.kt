@@ -9,7 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class Main : JavaPlugin() {
     override fun onLoad() {
-        if (!PacketEvents.getAPI().isLoaded) {
+        if (PacketEvents.getAPI()?.isLoaded != true) {
             PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this))
             PacketEvents.getAPI().load()
         }
@@ -26,7 +26,7 @@ class Main : JavaPlugin() {
     }
 
     override fun onDisable() {
-        if (PacketEvents.getAPI().isInitialized && server.pluginManager.getPlugin("packetevents") == null) {
+        if (PacketEvents.getAPI()?.isInitialized == true && server.pluginManager.getPlugin("packetevents") == null) {
             PacketEvents.getAPI().terminate()
         }
     }

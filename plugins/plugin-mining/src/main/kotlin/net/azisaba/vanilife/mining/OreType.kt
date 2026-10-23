@@ -6,7 +6,6 @@ import io.papermc.paper.registry.TypedKey
 import io.papermc.paper.registry.keys.tags.BlockTypeTagKeys
 import io.papermc.paper.registry.tag.TagKey
 import net.azisaba.vanilife.item.ServerItem
-import net.coreprotect.CoreProtectAPI
 import org.bukkit.Material
 import org.bukkit.block.Biome
 import org.bukkit.block.BlockState
@@ -39,18 +38,11 @@ data class OreType private constructor(val base: Material, val ingot: Material?,
         fun byBlock(blockState: BlockState): OreType? =
             SET.firstOrNull { it.isBlock(blockState) }
 
-        fun byBlockWithNaturalCheck(blockState: BlockState, coreProtectApi: CoreProtectAPI): OreType? {
+        internal fun byBlockWithNaturalCheck(blockState: BlockState, placedBlockLookup: PlacedBlockLookup): OreType? {
             if (blockState.block.biome != Biome.GLACIAL_CAVE) return null
 
             val oreType = byBlock(blockState) ?: return null
-
-            val lookup = coreProtectApi.blockLookup(blockState.block, 0) ?: return oreType
-            for (row in lookup) {
-                val result = coreProtectApi.parseResult(row)
-                if (result.actionId == 1) {
-                    return null
-                }
-            }
+            if (placedBlockLookup.isPlacedByPlayer(blockState.block)) return null
 
             return oreType
         }
