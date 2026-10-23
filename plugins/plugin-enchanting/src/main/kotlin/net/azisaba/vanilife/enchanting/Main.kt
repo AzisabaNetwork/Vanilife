@@ -3,9 +3,6 @@ package net.azisaba.vanilife.enchanting
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.shynixn.mccoroutine.folia.launch
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
-import me.tofaa.entitylib.APIConfig
-import me.tofaa.entitylib.EntityLib
-import me.tofaa.entitylib.spigot.SpigotEntityLibPlatform
 import net.azisaba.vanilife.reloadableConfig
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
@@ -31,7 +28,6 @@ internal class Main : JavaPlugin() {
         if (!PacketEvents.getAPI().isInitialized) {
             PacketEvents.getAPI().init()
         }
-        EntityLib.init(SpigotEntityLibPlatform(this), APIConfig(PacketEvents.getAPI()))
         EnchantingRecipes.bootstrap(server)
 
         koinApp = startKoin {

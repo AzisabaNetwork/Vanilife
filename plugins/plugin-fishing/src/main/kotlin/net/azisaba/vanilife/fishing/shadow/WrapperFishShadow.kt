@@ -6,9 +6,8 @@ import com.github.retrooper.packetevents.util.Quaternion4f
 import com.github.retrooper.packetevents.util.Vector3f
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import io.papermc.paper.math.FinePosition
-import me.tofaa.entitylib.container.EntityContainer
-import me.tofaa.entitylib.meta.display.AbstractDisplayMeta
-import me.tofaa.entitylib.meta.display.TextDisplayMeta
+import me.tofaa.entitylib.meta.MetaFields
+import me.tofaa.entitylib.meta.enums.BillboardConstraints
 import me.tofaa.entitylib.wrapper.WrapperEntity
 import net.azisaba.vanilife.fishing.FishingFonts
 import net.azisaba.vanilife.fishing.ai.FishBehavior
@@ -25,7 +24,7 @@ class WrapperFishShadow(
 ) : WrapperEntity(EntityTypes.TEXT_DISPLAY) {
     val translatedLocation: Location
         get() {
-            val translation = getEntityMeta(TextDisplayMeta::class.java).translation
+            val translation = metadata.get(MetaFields.Display.TRANSLATION) ?: Vector3f(0f, 0f, 0f)
             val translatedPosition = location.position.add(
                 translation.x.toDouble(),
                 translation.y.toDouble(),
@@ -37,25 +36,24 @@ class WrapperFishShadow(
     var state: State = State.APPROACHING
         private set
 
-    override fun spawn(location: Location, parent: EntityContainer): Boolean {
-        if (!super.spawn(location, parent)) return false
-
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.text = Component.text(FishingFonts.FishShadows.FISH_SHADOW).font(FishingFonts.FISH_SHADOWS)
-            meta.billboardConstraints = AbstractDisplayMeta.BillboardConstraints.FIXED
-            meta.backgroundColor = 0
-            meta.brightnessOverride = 0x00f000f0
-            meta.interpolationDelay = 0
-            meta.transformationInterpolationDuration = 5
-            meta.leftRotation = createAxisAngleQuaternion(1f, 0f, 0f, -90f)
-            meta.rightRotation = Quaternion4f(0f, 0f, 0f, 1f)
-            meta.translation = Vector3f(INITIAL_OFFSET_X, SURFACE_OFFSET_Y, 0f)
+    init {
+        consumeMetadata { meta ->
+            meta.set(
+                MetaFields.TextDisplay.TEXT,
+                Component.text(FishingFonts.FishShadows.FISH_SHADOW).font(FishingFonts.FISH_SHADOWS),
+            )
+            meta.set(MetaFields.Display.BILLBOARD_RENDER_CONSTRAINTS, BillboardConstraints.FIXED)
+            meta.set(MetaFields.TextDisplay.BACKGROUND_COLOR, 0)
+            meta.set(MetaFields.Display.BRIGHTNESS_OVERRIDE, 0x00f000f0)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS, 0)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_DURATION, 5)
+            meta.set(MetaFields.Display.LEFT_ROTATION, createAxisAngleQuaternion(1f, 0f, 0f, -90f))
+            meta.set(MetaFields.Display.RIGHT_ROTATION, Quaternion4f(0f, 0f, 0f, 1f))
+            meta.set(MetaFields.Display.TRANSLATION, Vector3f(INITIAL_OFFSET_X, SURFACE_OFFSET_Y, 0f))
         }
-        refresh()
-        return true
     }
 
-    override fun tick(time: Long) {
+    fun tick(time: Long) {
         when (state) {
             State.APPROACHING -> approachTick(time)
             State.FIGHTING -> fightTick(time)
@@ -100,17 +98,16 @@ class WrapperFishShadow(
             (position.z() - z).toFloat()
         )
 
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.translation = translation
+        consumeMetadata { meta ->
+            meta.set(MetaFields.Display.TRANSLATION, translation)
             val directionX = (position.x() - currentPosition.x()).toFloat()
             val directionZ = (position.z() - currentPosition.z()).toFloat()
             if (directionX != 0f || directionZ != 0f) {
                 val angle = atan2(-directionX, -directionZ)
                 val half = angle / 2f
-                meta.rightRotation = Quaternion4f(0f, 0f, sin(half), cos(half))
+                meta.set(MetaFields.Display.RIGHT_ROTATION, Quaternion4f(0f, 0f, sin(half), cos(half)))
             }
         }
-        refresh()
     }
 
     private fun computeCurrentSurfacePosition(): org.bukkit.Location = SpigotConversionUtil.toBukkitLocation(fishHook.world, translatedLocation).apply {

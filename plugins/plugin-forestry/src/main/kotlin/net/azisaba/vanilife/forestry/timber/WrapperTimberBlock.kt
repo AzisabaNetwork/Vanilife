@@ -5,14 +5,12 @@ import com.github.retrooper.packetevents.protocol.particle.Particle
 import com.github.retrooper.packetevents.protocol.particle.data.ParticleBlockStateData
 import com.github.retrooper.packetevents.protocol.particle.data.ParticleColorData
 import com.github.retrooper.packetevents.protocol.particle.type.ParticleTypes
-import com.github.retrooper.packetevents.protocol.world.Location
 import com.github.retrooper.packetevents.util.Quaternion4f
 import com.github.retrooper.packetevents.util.Vector3d
 import com.github.retrooper.packetevents.util.Vector3f
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerParticle
-import me.tofaa.entitylib.container.EntityContainer
-import me.tofaa.entitylib.meta.display.BlockDisplayMeta
+import me.tofaa.entitylib.meta.MetaFields
 import me.tofaa.entitylib.wrapper.WrapperEntity
 import org.bukkit.Material
 import org.bukkit.block.BlockState
@@ -30,21 +28,17 @@ internal class WrapperTimberBlock(
     private val initialOffsetFromPivot: Vector3d =
         Vector3d(blockState.x - pivot.x, blockState.y - pivot.y, blockState.z - pivot.z)
 
-    override fun spawn(location: Location, parent: EntityContainer): Boolean {
-        if (!super.spawn(location, parent)) return false
-
-        consumeEntityMeta(BlockDisplayMeta::class.java) { meta ->
-            meta.blockState = SpigotConversionUtil.fromBukkitBlockData(blockState.blockData)
-            meta.translation = Vector3f(0f, 0f, 0f)
-            meta.leftRotation = Quaternion4f(0f, 0f, 0f, 1f)
-            meta.interpolationDelay = 0
-            meta.transformationInterpolationDuration = 2
+    init {
+        consumeMetadata { meta ->
+            meta.set(MetaFields.BlockDisplay.BLOCK_STATE, SpigotConversionUtil.fromBukkitBlockData(blockState.blockData))
+            meta.set(MetaFields.Display.TRANSLATION, Vector3f(0f, 0f, 0f))
+            meta.set(MetaFields.Display.LEFT_ROTATION, Quaternion4f(0f, 0f, 0f, 1f))
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS, 0)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_DURATION, 2)
         }
-
-        return true
     }
 
-    override fun tick(time: Long) {
+    fun tick(time: Long) {
         val progress = (time.toDouble() / animationTime).coerceIn(0.0, 1.0)
         val angle = (-(PI / 2.0) * progress).toFloat()
         val blockPos = computeBlockPosition(angle)
@@ -55,11 +49,10 @@ internal class WrapperTimberBlock(
             (blockPos.z - blockState.z).toFloat(),
         )
 
-        consumeEntityMeta(BlockDisplayMeta::class.java) { meta ->
-            meta.translation = translation
-            meta.leftRotation = axisAngleToQuaternion(rotationAxis, angle)
+        consumeMetadata { meta ->
+            meta.set(MetaFields.Display.TRANSLATION, translation)
+            meta.set(MetaFields.Display.LEFT_ROTATION, axisAngleToQuaternion(rotationAxis, angle))
         }
-        refresh()
 
         if (time == animationTime) {
             endTick(blockPos)

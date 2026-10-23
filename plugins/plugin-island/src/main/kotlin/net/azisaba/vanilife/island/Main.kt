@@ -2,9 +2,6 @@ package net.azisaba.vanilife.island
 
 import com.github.retrooper.packetevents.PacketEvents
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
-import me.tofaa.entitylib.APIConfig
-import me.tofaa.entitylib.EntityLib
-import me.tofaa.entitylib.spigot.SpigotEntityLibPlatform
 import net.azisaba.vanilife.ReloadableConfiguration
 import net.azisaba.vanilife.island.cache.IslandCacheMap
 import net.azisaba.vanilife.island.leveling.LevelingConfiguration
@@ -36,7 +33,6 @@ internal class Main : JavaPlugin() {
         if (!PacketEvents.getAPI().isInitialized) {
             PacketEvents.getAPI().init()
         }
-        EntityLib.init(SpigotEntityLibPlatform(this), APIConfig(PacketEvents.getAPI()))
 
         ScoreSource.bootstrap(this)
         WrackType.bootstrap(this)

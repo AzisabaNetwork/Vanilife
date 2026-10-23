@@ -4,7 +4,6 @@ import com.github.shynixn.mccoroutine.folia.launch
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import io.papermc.paper.registry.keys.SoundEventKeys
 import kotlinx.coroutines.delay
-import me.tofaa.entitylib.container.EntityContainer
 import net.azisaba.vanilife.farming.Crop
 import net.kyori.adventure.sound.Sound
 import org.bukkit.Particle
@@ -21,8 +20,6 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 internal open class CropBlockBehaviour {
-    private val wrapperEntityContainer: EntityContainer = EntityContainer.basic()
-
     fun blockPlace(block: Block, crop: Crop) {
         if (crop.isFullyGrownBlock(block.blockData)) return
         if (!isAtMaxMoisture(block)) return
@@ -79,10 +76,7 @@ internal open class CropBlockBehaviour {
         player?.playSound(Sound.sound(SoundEventKeys.ENTITY_EXPERIENCE_ORB_PICKUP, Sound.Source.BLOCK, 0.7f, 1.25f))
 
         val textDisplay = WrapperCropDropBonus()
-        textDisplay.spawn(
-            SpigotConversionUtil.fromBukkitLocation(block.location.add(0.5, 0.5, 0.5)),
-            wrapperEntityContainer,
-        )
+        textDisplay.spawn(SpigotConversionUtil.fromBukkitLocation(block.location.add(0.5, 0.5, 0.5)))
         player?.let { textDisplay.addViewer(it.uniqueId) }
         plugin.launch {
             delay((50L * 15).milliseconds)

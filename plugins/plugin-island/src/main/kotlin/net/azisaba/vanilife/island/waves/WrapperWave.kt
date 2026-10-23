@@ -6,8 +6,7 @@ import com.github.retrooper.packetevents.protocol.particle.type.ParticleTypes
 import com.github.retrooper.packetevents.protocol.world.Location
 import com.github.retrooper.packetevents.util.Vector3f
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerParticle
-import me.tofaa.entitylib.container.EntityContainer
-import me.tofaa.entitylib.meta.display.TextDisplayMeta
+import me.tofaa.entitylib.meta.MetaFields
 import me.tofaa.entitylib.wrapper.WrapperEntity
 import net.azisaba.vanilife.island.IslandFonts
 import net.azisaba.vanilife.world.IslandsWorld
@@ -23,28 +22,25 @@ internal class WrapperWave(val position: WavePosition) : WrapperEntity(EntityTyp
     private val ticksOffset: Long = random.nextLong(0L, CYCLE_TICKS)
     private var currentFrame: Char = IslandFonts.Waves.FRAME0
 
-    override fun spawn(location: Location, parent: EntityContainer): Boolean {
-        if (!super.spawn(location, parent)) return false
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.text = Component.text(IslandFonts.Waves.FRAME0).font(IslandFonts.WAVES)
-            meta.backgroundColor = 0
-            meta.brightnessOverride = 0x00f000f0
-            meta.leftRotation = position.coastSide.rotation
-            meta.textOpacity = cycleRandom.textOpacity
-            meta.transformationInterpolationDuration = 5
+    init {
+        consumeMetadata { meta ->
+            meta.set(MetaFields.TextDisplay.TEXT, Component.text(IslandFonts.Waves.FRAME0).font(IslandFonts.WAVES))
+            meta.set(MetaFields.TextDisplay.BACKGROUND_COLOR, 0)
+            meta.set(MetaFields.Display.BRIGHTNESS_OVERRIDE, 0x00f000f0)
+            meta.set(MetaFields.Display.LEFT_ROTATION, position.coastSide.rotation)
+            meta.set(MetaFields.TextDisplay.TEXT_OPACITY, cycleRandom.textOpacity)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_DURATION, 5)
         }
-        refresh()
-        return true
     }
 
-    override fun tick(time: Long) {
+    fun tick(time: Long) {
         val progress = progressAt(time)
         frameTick(progress)
         if ((time + ticksOffset) % CYCLE_TICKS == 0L) {
             startCycleTick()
         } else if (progress < cycleRandom.movementProgressEnd) {
             movementTick(time, progress)
-        } else if (!entityMeta.isInvisible) {
+        } else if (!metadata.getFlag(MetaFields.Entity.INVISIBLE)) {
             movementEndTick()
         }
     }
@@ -56,14 +52,13 @@ internal class WrapperWave(val position: WavePosition) : WrapperEntity(EntityTyp
 
     private fun startCycleTick() {
         cycleRandom = CycleRandom.roll(random)
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.text = Component.text(currentFrame).font(IslandFonts.WAVES)
-            meta.translation = Vector3f()
-            meta.scale = Vector3f(cycleRandom.scale, cycleRandom.scale, cycleRandom.scale)
-            meta.textOpacity = cycleRandom.textOpacity
-            meta.isInvisible = false
+        consumeMetadata { meta ->
+            meta.set(MetaFields.TextDisplay.TEXT, Component.text(currentFrame).font(IslandFonts.WAVES))
+            meta.set(MetaFields.Display.TRANSLATION, Vector3f())
+            meta.set(MetaFields.Display.SCALE, Vector3f(cycleRandom.scale, cycleRandom.scale, cycleRandom.scale))
+            meta.set(MetaFields.TextDisplay.TEXT_OPACITY, cycleRandom.textOpacity)
+            meta.setFlag(MetaFields.Entity.INVISIBLE, false)
         }
-        refresh()
     }
 
     private fun movementTick(time: Long, computedProgress: Double) {
@@ -79,11 +74,10 @@ internal class WrapperWave(val position: WavePosition) : WrapperEntity(EntityTyp
         val lz = -dx * sin + dz * cos
         val translation = Vector3f(lx.toFloat(), dy.toFloat(), lz.toFloat())
 
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.text = Component.text(currentFrame).font(IslandFonts.WAVES)
-            meta.translation = translation
+        consumeMetadata { meta ->
+            meta.set(MetaFields.TextDisplay.TEXT, Component.text(currentFrame).font(IslandFonts.WAVES))
+            meta.set(MetaFields.Display.TRANSLATION, translation)
         }
-        refresh()
     }
 
     private fun movementEndTick() {
@@ -98,11 +92,10 @@ internal class WrapperWave(val position: WavePosition) : WrapperEntity(EntityTyp
         )
         sendPacketsToViewers(particlePacket)
 
-        consumeEntityMeta(TextDisplayMeta::class.java) { meta ->
-            meta.text = Component.text(currentFrame).font(IslandFonts.WAVES)
-            meta.isInvisible = true
+        consumeMetadata { meta ->
+            meta.set(MetaFields.TextDisplay.TEXT, Component.text(currentFrame).font(IslandFonts.WAVES))
+            meta.setFlag(MetaFields.Entity.INVISIBLE, true)
         }
-        refresh()
     }
 
     private fun progressAt(ticks: Long): Double {

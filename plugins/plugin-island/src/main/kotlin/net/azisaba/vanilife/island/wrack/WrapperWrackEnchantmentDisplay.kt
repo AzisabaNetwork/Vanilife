@@ -1,13 +1,12 @@
 package net.azisaba.vanilife.island.wrack
 
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes
-import com.github.retrooper.packetevents.protocol.world.Location
 import com.github.retrooper.packetevents.util.Quaternion4f
 import com.github.retrooper.packetevents.util.Vector3f
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
-import me.tofaa.entitylib.container.EntityContainer
-import me.tofaa.entitylib.meta.display.AbstractDisplayMeta
-import me.tofaa.entitylib.meta.display.ItemDisplayMeta
+import me.tofaa.entitylib.meta.MetaFields
+import me.tofaa.entitylib.meta.enums.BillboardConstraints
+import me.tofaa.entitylib.meta.enums.ItemDisplayContext
 import me.tofaa.entitylib.wrapper.WrapperEntity
 import org.bukkit.Material
 import org.bukkit.Particle
@@ -20,22 +19,19 @@ import kotlin.math.sqrt
 internal class WrapperWrackEnchantmentDisplay(
     private val origin: org.bukkit.Location,
 ) : WrapperEntity(EntityTypes.ITEM_DISPLAY) {
-    override fun spawn(location: Location, parent: EntityContainer): Boolean {
-        if (!super.spawn(location, parent)) return false
-        consumeEntityMeta(ItemDisplayMeta::class.java) { meta ->
-            meta.item = SpigotConversionUtil.fromBukkitItemStack(ItemStack(Material.ENCHANTED_BOOK))
-            meta.displayType = ItemDisplayMeta.DisplayType.GROUND
-            meta.billboardConstraints = AbstractDisplayMeta.BillboardConstraints.FIXED
-            meta.interpolationDelay = 0
-            meta.transformationInterpolationDuration = 0
-            meta.scale = Vector3f(0.2f, 0.2f, 0.2f)
-            meta.translation = Vector3f(0f, 0f, 0f)
-            meta.rightRotation = axisAngle(1f, 0f, 0f, 20f)
-            meta.isGlowing = true
-            meta.glowColorOverride = 0x7A5BC2
+    init {
+        consumeMetadata { meta ->
+            meta.set(MetaFields.ItemDisplay.ITEM_STACK, SpigotConversionUtil.fromBukkitItemStack(ItemStack(Material.ENCHANTED_BOOK)))
+            meta.set(MetaFields.ItemDisplay.ITEM_DISPLAY, ItemDisplayContext.GROUND)
+            meta.set(MetaFields.Display.BILLBOARD_RENDER_CONSTRAINTS, BillboardConstraints.FIXED)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS, 0)
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_DURATION, 0)
+            meta.set(MetaFields.Display.SCALE, Vector3f(0.2f, 0.2f, 0.2f))
+            meta.set(MetaFields.Display.TRANSLATION, Vector3f(0f, 0f, 0f))
+            meta.set(MetaFields.Display.RIGHT_ROTATION, axisAngle(1f, 0f, 0f, 20f))
+            meta.setFlag(MetaFields.Entity.GLOWING, true)
+            meta.set(MetaFields.Display.GLOW_COLOR_OVERRIDE, 0x7A5BC2)
         }
-        refresh()
-        return true
     }
 
     fun tick(animationTick: Int, totalTicks: Int) {
@@ -45,13 +41,12 @@ internal class WrapperWrackEnchantmentDisplay(
         val scale = 0.2f + eased * 0.95f
         val verticalOffset = eased * 0.45f
 
-        consumeEntityMeta(ItemDisplayMeta::class.java) { meta ->
-            meta.transformationInterpolationDuration = 1
-            meta.scale = Vector3f(scale, scale, scale)
-            meta.translation = Vector3f(0f, verticalOffset, 0f)
-            meta.leftRotation = yawRotation(rotation)
+        consumeMetadata { meta ->
+            meta.set(MetaFields.Display.TRANSFORMATION_INTERPOLATION_DURATION, 1)
+            meta.set(MetaFields.Display.SCALE, Vector3f(scale, scale, scale))
+            meta.set(MetaFields.Display.TRANSLATION, Vector3f(0f, verticalOffset, 0f))
+            meta.set(MetaFields.Display.LEFT_ROTATION, yawRotation(rotation))
         }
-        refresh()
 
         origin.world.spawnParticle(
             Particle.ENCHANT,

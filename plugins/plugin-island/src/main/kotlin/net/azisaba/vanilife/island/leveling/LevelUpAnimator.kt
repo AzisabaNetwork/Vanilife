@@ -5,7 +5,6 @@ import com.github.shynixn.mccoroutine.folia.regionDispatcher
 import io.papermc.paper.math.Position
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import me.tofaa.entitylib.container.EntityContainer
 import net.azisaba.vanilife.Vanilife
 import net.azisaba.vanilife.island.Island
 import net.azisaba.vanilife.island.IslandFeature
@@ -40,9 +39,9 @@ internal object LevelUpAnimator {
             centerPosition = player.location,
         )
 
-        val container = spawnEffects(effectArea, newLevel, plugin, viewer = player.uniqueId)
+        val effects = spawnEffects(effectArea, newLevel, plugin, viewer = player.uniqueId)
 
-        playEffects(container)
+        playEffects(effects)
     }
 
     private fun sendMessage(player: Player, newLevel: Int, oldLevel: Int) = player.sendMessage {
@@ -83,16 +82,16 @@ internal object LevelUpAnimator {
         player.playSound(Sound.sound(IslandSoundEvents.ISLAND_LEVEL_UP, Sound.Source.PLAYER, 0.35f, 1f))
     }
 
-    private suspend fun playEffects(entityContainer: EntityContainer) {
+    private suspend fun playEffects(effects: List<WrapperLevelUpEffect>) {
         try {
             repeat(EFFECT_LIFETIME_TICKS) { time ->
-                entityContainer.forEach { entity ->
-                    entity.tick(time.toLong())
+                effects.forEach { effect ->
+                    effect.tick(time.toLong())
                 }
                 delay(50L.milliseconds)
             }
         } finally {
-            entityContainer.clearEntities(true)
+            effects.forEach(WrapperLevelUpEffect::remove)
         }
     }
 
@@ -101,8 +100,8 @@ internal object LevelUpAnimator {
         level: Int,
         plugin: Plugin,
         viewer: UUID
-    ): EntityContainer {
-        val entityContainer = EntityContainer.basic()
+    ): List<WrapperLevelUpEffect> {
+        val effects = mutableListOf<WrapperLevelUpEffect>()
         val world = Vanilife.getIslandsWorld()
 
         withContext(plugin.regionDispatcher(world, effectArea.minBlockX shr 4, effectArea.minBlockZ shr 4)) {
@@ -120,15 +119,15 @@ internal object LevelUpAnimator {
                     val spawnY = highestY + 1.0
                     val spawnZ = blockZ + 0.5
 
-                    WrapperLevelUpEffect(level).apply {
+                    effects += WrapperLevelUpEffect(level).apply {
                         addViewer(viewer)
-                        spawn(Location(spawnX, spawnY, spawnZ, 0f, 0f), entityContainer)
+                        spawn(Location(spawnX, spawnY, spawnZ, 0f, 0f))
                     }
                 }
             }
         }
 
-        return entityContainer
+        return effects
     }
 
     private data class EffectArea(val minBlockX: Int, val maxBlockX: Int, val minBlockZ: Int, val maxBlockZ: Int) {

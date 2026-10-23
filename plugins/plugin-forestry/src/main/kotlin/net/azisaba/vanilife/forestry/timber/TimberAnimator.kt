@@ -4,7 +4,6 @@ import com.github.retrooper.packetevents.protocol.world.Location
 import com.github.retrooper.packetevents.util.Vector3d
 import io.papermc.paper.registry.keys.SoundEventKeys
 import kotlinx.coroutines.delay
-import me.tofaa.entitylib.container.EntityContainer
 import net.azisaba.vanilife.forestry.finder.DetectedTree
 import net.kyori.adventure.sound.Sound
 import org.bukkit.Material
@@ -22,7 +21,7 @@ internal class TimberAnimator(val config: Configuration = Configuration()) {
 
         context.world.playSound(config.creakingSound, context.x.toDouble(), context.y.toDouble(), context.z.toDouble())
 
-        val entityContainer = EntityContainer.basic()
+        val wrapperBlocks = mutableListOf<WrapperTimberBlock>()
         val animationViewers = context.chunk.playersSeeingChunk.map(Player::getUniqueId)
         val rotationAxis = computeRotationAxis(context.player.yaw)
 
@@ -30,19 +29,20 @@ internal class TimberAnimator(val config: Configuration = Configuration()) {
             val wrapperBlock = WrapperTimberBlock(blockState, pivot, rotationAxis, config.animationTime)
 
             val spawnLocation = Location(blockState.x.toDouble(), blockState.y.toDouble(), blockState.z.toDouble(), 0f, 0f)
-            wrapperBlock.spawn(spawnLocation, entityContainer)
+            wrapperBlock.spawn(spawnLocation)
             animationViewers.forEach(wrapperBlock::addViewer)
+            wrapperBlocks += wrapperBlock
 
             blockState.block.type = Material.AIR
         }
 
         delay(50L.milliseconds)
         for (time in 1..config.animationTime) {
-            entityContainer.entities.forEach { it.tick(time) }
+            wrapperBlocks.forEach { it.tick(time) }
             delay(50L.milliseconds)
         }
 
-        entityContainer.clearEntities(true)
+        wrapperBlocks.forEach(WrapperTimberBlock::remove)
     }
 
     private fun pivotVec(detectedTree: DetectedTree): Vector3d? {
