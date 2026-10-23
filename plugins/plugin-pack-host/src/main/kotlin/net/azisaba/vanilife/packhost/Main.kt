@@ -32,6 +32,7 @@ import net.azisaba.vanilife.mining.MiningTranslations
 import net.azisaba.vanilife.npc.NpcFonts
 import net.azisaba.vanilife.npc.NpcTranslations
 import net.azisaba.vanilife.portal.PortalTranslations
+import net.azisaba.vanilife.reloadableConfig
 import net.azisaba.vanilife.toolswap.ToolSwapTranslations
 import net.kyori.adventure.resource.ResourcePackInfo
 import net.kyori.adventure.text.Component
@@ -315,12 +316,22 @@ internal class Main : JavaPlugin() {
             )
         }
 
-        val configured = packed.configureEmbeddedServer(port = 8085)
+        val config = reloadableConfig(Configuration(), Configuration.serializer()).value()
+        val configured = packed.configureEmbeddedServer(port = config.port)
         configured.embeddedServer.start(wait = false)
+
+        val publicUri = URI.create(config.publicUrl)
+        if (publicUri.host == null || publicUri.host == "localhost" || publicUri.host == "127.0.0.1") {
+            logger.warning("publicUrl (${config.publicUrl}) is not reachable from clients; set it in config.yml")
+        }
+
+        // The pack is rebuilt on every start, so key the URL by its hash to keep CDN caches from serving a stale zip
+        val sha1 = configured.computeSha1Hash()
+        val separator = if (publicUri.rawQuery == null) "?" else "&"
         val packInfo = ResourcePackInfo.resourcePackInfo(
             UUID.randomUUID(),
-            URI.create("http://localhost:8085"),
-            configured.computeSha1Hash()
+            URI.create("${config.publicUrl}${separator}sha1=$sha1"),
+            sha1
         )
 
         server.pluginManager.registerEvents(PlayerListener(packInfo), this)

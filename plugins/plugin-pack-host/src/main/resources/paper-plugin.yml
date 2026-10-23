@@ -25,5 +25,7 @@ dependencies:
       load: BEFORE
     AzisabaNetwork.Vanilife.Portal:
       load: BEFORE
+    AzisabaNetwork.Vanilife.Runtime:
+      load: BEFORE
     AzisabaNetwork.Vanilife.ToolSwap:
       load: BEFORE
