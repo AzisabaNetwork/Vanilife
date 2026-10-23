@@ -70,7 +70,9 @@ private class LevelDataAccessorImpl(
     }
 
     override suspend fun bootstrapLevelData() = suspendTransaction(database) {
-        val row = IslandsTable.select(IslandsTable.level, IslandsTable.score).single()
+        val row = IslandsTable.select(IslandsTable.level, IslandsTable.score)
+            .where { IslandsTable.id eq position.toLong() }
+            .single()
         cacheData = CacheData(
             level = row[IslandsTable.level],
             score = row[IslandsTable.score],
