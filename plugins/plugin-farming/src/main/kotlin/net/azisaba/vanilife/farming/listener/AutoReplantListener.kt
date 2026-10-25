@@ -9,12 +9,12 @@ import kotlinx.coroutines.delay
 import net.azisaba.vanilife.event.BlockDropLootEvent
 import net.azisaba.vanilife.farming.Crop
 import org.bukkit.Particle
-import org.bukkit.block.data.Ageable
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.plugin.Plugin
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class AutoReplantListener(
     private val enchantment: TypedKey<Enchantment>,
@@ -30,7 +30,7 @@ internal class AutoReplantListener(
 
         if (itemStack.containsEnchantment(enchantment)) {
             plugin.launch(plugin.regionDispatcher(event.block.location)) {
-                delay(50L)
+                delay(50L.milliseconds)
                 val blockData = crop.unwrapBlock().createBlockData()
                 event.block.blockData = blockData
                 itemStack.damage(1, event.player)
