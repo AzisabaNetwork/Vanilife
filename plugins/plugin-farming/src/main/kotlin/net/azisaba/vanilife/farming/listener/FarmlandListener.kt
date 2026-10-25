@@ -21,8 +21,9 @@ internal class FarmlandListener(private val fertilizer: TypedKey<ServerItem>) : 
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onPlayerInteract(event: PlayerInteractEvent) {
+        if (!event.action.isRightClick) return
         val interacted = event.clickedBlock ?: return
         val farmland = interacted.blockData as? Farmland ?: return
 

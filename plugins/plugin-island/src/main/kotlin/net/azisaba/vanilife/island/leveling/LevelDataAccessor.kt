@@ -1,5 +1,7 @@
 package net.azisaba.vanilife.island.leveling
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.azisaba.vanilife.island.Island
 import net.azisaba.vanilife.island.IslandsTable
 import net.azisaba.vanilife.island.leveling.score.ScoreSource
@@ -45,6 +47,9 @@ private class LevelDataAccessorImpl(
 
     private val scoringManager: ScoringManager = ScoringManager()
 
+    // Serializes the read-modify-write in updateScore so concurrent score events are not lost
+    private val scoreMutex: Mutex = Mutex()
+
     override suspend fun level(level: Int) = suspendTransaction(database) {
         require(level in Island.MIN_LEVEL..Island.MAX_LEVEL) {
             "Island level must be between ${Island.MIN_LEVEL}..${Island.MAX_LEVEL}"
@@ -63,7 +68,7 @@ private class LevelDataAccessorImpl(
         cacheData = requireLoaded().copy(score = score)
     }
 
-    override suspend fun updateScore(source: ScoreSource) {
+    override suspend fun updateScore(source: ScoreSource) = scoreMutex.withLock {
         val give = scoringManager.computeScore(source)
         val newScore = score + give
         score(newScore)

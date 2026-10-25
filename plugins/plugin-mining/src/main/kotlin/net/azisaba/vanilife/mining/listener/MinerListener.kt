@@ -9,7 +9,7 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.plugin.Plugin
 
 internal class MinerListener(private val plugin: Plugin) : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
         if (!Miner.isMinable(event.block)) {
             return

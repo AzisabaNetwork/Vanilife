@@ -19,7 +19,7 @@ internal class TimberListener(
     private val animator: TimberAnimator,
     private val plugin: Plugin,
 ) : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     suspend fun onBlockBreak(event: BlockBreakEvent) {
         val itemStack = event.player.equipment.itemInMainHand
 

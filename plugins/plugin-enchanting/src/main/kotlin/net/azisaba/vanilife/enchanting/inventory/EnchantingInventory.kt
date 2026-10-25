@@ -74,6 +74,8 @@ internal class EnchantingInventory : InventoryHolder {
 
         val resultLevel = recipe.targetLevelFor(itemStack) ?: return null
         val requiredLevel = recipe.requiredLevel(itemStack) ?: return null
+        // The player may have spent levels since the result preview was computed
+        if (player.level < requiredLevel) return null
         val result = recipe.createResultItem(itemStack, resultLevel)
         val location = player.location.clone().add(0.5, 1.0, 0.5)
         player.world.playSound(location, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1.0f, 1.0f)

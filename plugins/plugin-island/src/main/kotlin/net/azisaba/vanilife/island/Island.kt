@@ -85,7 +85,7 @@ class Island internal constructor(
         }
 
         if (ScoreSource.any { it is ScoreSource.VisitPlayer }) {
-            val isFirstVisit = hasVisited(player)
+            val isFirstVisit = !hasVisited(player)
 
             ScoreSource.byLevel(level)
                 .filterIsInstance<ScoreSource.VisitPlayer>()

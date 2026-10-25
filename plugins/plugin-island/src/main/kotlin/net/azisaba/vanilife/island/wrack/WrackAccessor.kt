@@ -62,7 +62,7 @@ private class WrackAccessorImpl(
     override suspend fun wrackTick(time: Long, level: Int, enchantments: EnchantmentAccessor) {
         tickingWrackEntities.removeIf { !it.tick(time) }
 
-        if (time >= nextSpawnTime && wrackEntities.size <= spawnLimit.value()) {
+        if (time >= nextSpawnTime && wrackEntities.size < spawnLimit.value()) {
             spawnTick(time, level, enchantments)
         }
 
@@ -72,6 +72,7 @@ private class WrackAccessorImpl(
                 is Action.AddViewer -> addViewerAction(action)
                 is Action.RemoveViewer -> removeViewerAction(action)
                 is Action.SpawnWrack -> spawnWrackAction(action, time)
+                is Action.DestroyWrack -> destroyWrackAction(action)
             }
         }
     }
@@ -82,8 +83,7 @@ private class WrackAccessorImpl(
             WrackType.roll(random, level, enchantments)
                 ?.takeIf { rolled ->
                     rolled !is WrackType.Enchantment || wrackEntities.none { wrackEntity ->
-                        val type = wrackEntity.wrackType
-                        type !is WrackType.Enchantment || type.enchantment != rolled
+                        (wrackEntity.wrackType as? WrackType.Enchantment)?.enchantment == rolled.enchantment
                     }
                 }
                 ?.let(::spawnWrack)
@@ -106,13 +106,18 @@ private class WrackAccessorImpl(
 
     private suspend fun spawnWrackAction(action: Action.SpawnWrack, time: Long) {
         val driftPath = DriftPath.random(position, action.coastSide, Vanilife.getIslandsWorld(), plugin)
+        // Destruction is reported from the hit box listener thread, so hand it back to the tick loop
         val wrackEntity = WrackEntity(action.wrackType, position, Vanilife.getIslandsWorld(), driftPath, time) {
-            wrackEntities.remove(it)
-            tickingWrackEntities.remove(it)
+            enqueueAction(Action.DestroyWrack(it))
         }
         viewers.forEach(wrackEntity::addViewer)
         tickingWrackEntities.add(wrackEntity)
         wrackEntities.add(wrackEntity)
+    }
+
+    private fun destroyWrackAction(action: Action.DestroyWrack) {
+        wrackEntities.remove(action.wrackEntity)
+        tickingWrackEntities.remove(action.wrackEntity)
     }
 
     sealed interface Action {
@@ -121,5 +126,7 @@ private class WrackAccessorImpl(
         data class RemoveViewer(val viewer: Player) : Action
 
         data class SpawnWrack(val wrackType: WrackType, val coastSide: CoastSide) : Action
+
+        data class DestroyWrack(val wrackEntity: WrackEntity) : Action
     }
 }

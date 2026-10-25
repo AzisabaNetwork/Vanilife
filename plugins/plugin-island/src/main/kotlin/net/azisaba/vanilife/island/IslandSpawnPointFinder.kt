@@ -75,13 +75,19 @@ internal object IslandSpawnPointFinder : KoinComponent {
     private suspend fun findAt(blockX: Int, blockZ: Int, yaw: Float): Location? {
         val world = Vanilife.getIslandsWorld()
         val anchor = Location(world, blockX + 0.5, 0.0, blockZ + 0.5)
-        val highestBlock = if (Bukkit.isOwnedByCurrentRegion(world, blockX shr 4, blockZ shr 4)) {
-            world.getHighestBlockAt(blockX, blockZ, HeightMap.MOTION_BLOCKING_NO_LEAVES)
+        // Every block read must happen on the region that owns the column, not only the height map lookup
+        return if (Bukkit.isOwnedByCurrentRegion(world, blockX shr 4, blockZ shr 4)) {
+            findAtOwned(blockX, blockZ, yaw)
         } else {
             withContext(plugin.regionDispatcher(anchor)) {
-                world.getHighestBlockAt(blockX, blockZ, HeightMap.MOTION_BLOCKING_NO_LEAVES)
+                findAtOwned(blockX, blockZ, yaw)
             }
         }
+    }
+
+    private fun findAtOwned(blockX: Int, blockZ: Int, yaw: Float): Location? {
+        val world = Vanilife.getIslandsWorld()
+        val highestBlock = world.getHighestBlockAt(blockX, blockZ, HeightMap.MOTION_BLOCKING_NO_LEAVES)
         if (!isSafeGround(highestBlock)) {
             return null
         }

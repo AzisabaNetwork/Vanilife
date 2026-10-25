@@ -21,7 +21,7 @@ internal class AutoReplantListener(
     private val crop: Crop,
     private val plugin: Plugin,
 ) : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
         if (!crop.isFullyGrownBlock(event.block.blockData)) return
 

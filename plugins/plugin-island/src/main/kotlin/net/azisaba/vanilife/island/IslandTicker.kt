@@ -1,6 +1,7 @@
 package net.azisaba.vanilife.island
 
 import com.github.shynixn.mccoroutine.folia.launch
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -10,6 +11,7 @@ import net.azisaba.vanilife.island.leveling.requirements.LevelUpRequirementProvi
 import net.azisaba.vanilife.island.leveling.tryLevelUp
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
+import java.util.logging.Level
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class IslandTicker(
@@ -22,7 +24,14 @@ internal class IslandTicker(
         var time = 0L
         while (isActive) {
             for (island in cacheMap) {
-                island.tick(time)
+                // Guard each island so a single failure does not stop ticking for every island
+                try {
+                    island.tick(time)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    plugin.logger.log(Level.SEVERE, "Failed to tick island at ${island.position}", e)
+                }
             }
             time++
             delay(50L.milliseconds)
@@ -39,7 +48,8 @@ internal class IslandTicker(
             tickLevel.tick(this, time)
         }
 
-        if (time % levelUpCheckIntervalTicks.value() == 0L && IslandPlayerMap.lookup(owner) === this) {
+        val levelUpCheckInterval = levelUpCheckIntervalTicks.value().coerceAtLeast(1L)
+        if (time % levelUpCheckInterval == 0L && IslandPlayerMap.lookup(owner) === this) {
             tryLevelUp(levelUpRequirements.value(), plugin)
         }
     }

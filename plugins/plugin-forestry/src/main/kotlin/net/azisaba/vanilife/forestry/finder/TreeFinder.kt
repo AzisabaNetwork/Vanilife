@@ -65,7 +65,7 @@ sealed interface TreeFinder {
             blockState.type == trunk && isWithinBounds(source, blockState)
 
         fun isLeavesBlock(source: BlockState, blockState: BlockState): Boolean = blockState.type == leaves &&
-                (blockState !is Leaves || !blockState.isPersistent) &&
+                (blockState.blockData as? Leaves)?.isPersistent != true &&
                 isWithinBounds(source, blockState)
 
         fun isWithinBounds(source: BlockState, block: BlockState): Boolean =

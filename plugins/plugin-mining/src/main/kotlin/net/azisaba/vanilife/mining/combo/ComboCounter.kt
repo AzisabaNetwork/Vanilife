@@ -10,21 +10,26 @@ import java.util.concurrent.atomic.AtomicLong
 class ComboCounter internal constructor() {
     private val combo: AtomicInteger = AtomicInteger(0)
 
-    private var lastMiningTime: AtomicLong = AtomicLong(0L)
+    private val lastMiningTime: AtomicLong = AtomicLong(0L)
 
     fun read(): Int {
         val now = System.currentTimeMillis()
-        val isExpired = now - lastMiningTime.get() > COMBO_TIMEOUT_MILLIS
-        return if (!isExpired) combo.get() else {
+        return if (!isExpired(now)) combo.get() else {
             combo.set(0)
             0
         }
     }
 
     fun increment() {
+        val now = System.currentTimeMillis()
+        if (isExpired(now)) {
+            combo.set(0)
+        }
         combo.incrementAndGet()
-        lastMiningTime.set(System.currentTimeMillis())
+        lastMiningTime.set(now)
     }
+
+    private fun isExpired(now: Long): Boolean = now - lastMiningTime.get() > COMBO_TIMEOUT_MILLIS
 
     companion object {
         private const val COMBO_TIMEOUT_TICKS: Long = 20L * 10

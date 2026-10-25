@@ -20,6 +20,7 @@ import org.bukkit.entity.TextDisplay
 import org.bukkit.plugin.Plugin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.concurrent.atomic.AtomicBoolean
 
 class WrackEntity internal constructor(
     val wrackType: WrackType,
@@ -34,6 +35,8 @@ class WrackEntity internal constructor(
 
     private val cacheMap: IslandCacheMap by inject()
     private val plugin: Plugin by inject()
+
+    private val destroyed: AtomicBoolean = AtomicBoolean(false)
 
     private val totalTicks: Long = path.random.nextLong(20L * 15, 20L * 30)
 
@@ -89,12 +92,15 @@ class WrackEntity internal constructor(
             return
         }
 
+        if (!destroyed.compareAndSet(false, true)) return
+
         val hitBoxSource = (event.hitBox.source() as? BukkitEntity)?.source()
         hitBoxSource?.remove()
 
         val dropLocation = Location(world, path.endPos.x(), path.endPos.y(), path.endPos.z())
         plugin.launch(plugin.regionDispatcher(dropLocation)) {
-            wrackType.drop(path.random, player, world.getIslandAt(islandPosition)!!, this@WrackEntity)
+            val island = world.getIslandAt(islandPosition) ?: return@launch
+            wrackType.drop(path.random, player, island, this@WrackEntity)
         }
 
         tracker.close()

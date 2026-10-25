@@ -12,7 +12,7 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.plugin.Plugin
 
 internal class AutoSaplingListener(private val finder: TreeFinder, private val plugin: Plugin) : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     suspend fun onBlockBreak(event: BlockBreakEvent) {
         val itemStack = event.player.equipment.itemInMainHand
 

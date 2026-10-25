@@ -14,6 +14,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.text.format.ShadowColor
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags
 import org.bukkit.plugin.Plugin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -30,6 +32,19 @@ object DisplayNameDialog : KoinComponent {
         .build()
 
     private val plugin: Plugin by inject()
+
+    // Restrict player input to styling tags so names cannot carry click/hover/insertion events
+    private val nameMiniMessage: MiniMessage = MiniMessage.builder()
+        .tags(
+            TagResolver.resolver(
+                StandardTags.color(),
+                StandardTags.decorations(),
+                StandardTags.gradient(),
+                StandardTags.rainbow(),
+                StandardTags.reset(),
+            )
+        )
+        .build()
 
     fun create(island: Island): Dialog = Dialog.create { builder ->
         builder.empty()
@@ -51,10 +66,9 @@ object DisplayNameDialog : KoinComponent {
                         .action(
                             DialogAction.customClick(
                                 { response, _ ->
+                                    val newName = response.getText("new_name") ?: return@customClick
                                     plugin.launch {
-                                        island.displayName(
-                                            MiniMessage.miniMessage().deserialize(response.getText("new_name")!!)
-                                        )
+                                        island.displayName(nameMiniMessage.deserialize(newName))
                                     }
                                 },
                                 ClickCallback.Options.builder()

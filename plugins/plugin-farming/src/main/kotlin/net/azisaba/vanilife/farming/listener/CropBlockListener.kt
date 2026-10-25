@@ -15,7 +15,8 @@ import kotlin.random.asKotlinRandom
 internal class CropBlockListener(private val behaviour: CropBlockBehaviour, private val plugin: Plugin) : Listener {
     @EventHandler
     fun onBlockRandomTick(event: BlockRandomTickEvent) {
-        if (event.block.blockData is Ageable) {
+        // Only handle our crops; cancelling every Ageable would stop sugar cane, cactus, fire, etc. from ticking
+        if (Crop.byBlock(event.block.type) != null && event.block.blockData is Ageable) {
             behaviour.randomTick(event.block, event.random.asKotlinRandom())
             event.isCancelled = true
         }

@@ -8,7 +8,7 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.player.PlayerQuitEvent
 
 internal object ComboListener : Listener {
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
         if (ComboCounter.shouldIncrementCombo(event.block)) {
             val counter = ComboCounterSource.getOrCreate(event.player)
